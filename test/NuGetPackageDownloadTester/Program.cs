@@ -6,6 +6,7 @@ using NugetPackageDownloader;
 using NugetPackageDownloader.Helpers;
 using NugetPackageDownloader.Logging;
 using NugetPackageDownloader.Resources;
+using NugetPackageDownloader.Resources.Downloader;
 using NugetPackageDownloader.Resources.Metadata;
 
 namespace NuGetDownloadTester
@@ -16,14 +17,15 @@ namespace NuGetDownloadTester
         {
             const string NUGET_PACKAGE_NAME = "EntityFramework";
             const string VERSION = "6.4.0";
-            const string PATH = @"C:\TigerBox\POC\NugetPackageDownloader\nuget";
+            const string PATH = @"C:\TigerBox\POC\NugetPackageDownloader\bin";
 
             //Setup Dependency Container
             var serviceProvider = new ServiceCollection()
                                         .AddLogging(configure => configure.AddConsole())
-                                        .AddSingleton<NugetManager>()
                                         .AddSingleton<NuGet.Common.ILogger, NuGetLogger>()
+                                        .AddSingleton<NuGetManager>()
                                         .AddSingleton<IPackageMetadata, PackageMetadata>()
+                                        .AddSingleton<IPackageDownloader, PackageDownloader>()
                                         .AddSingleton<INuGetDownloader, NuGetDownloader>()
                                         .BuildServiceProvider();
 

@@ -7,6 +7,7 @@ using NuGet.Common;
 using NuGet.Protocol.Core.Types;
 
 using NugetPackageDownloader.Helpers;
+using NugetPackageDownloader.Resources.Downloader;
 using IPackageMetadata = NugetPackageDownloader.Resources.Metadata.IPackageMetadata;
 
 namespace NugetPackageDownloader
@@ -17,9 +18,10 @@ namespace NugetPackageDownloader
 
         private readonly ILogger _logger;
         private readonly IPackageMetadata _packageMetadata;
+        private readonly IPackageDownloader _packageDownloader;
 
-        public NuGetDownloader(ILogger logger, IPackageMetadata packageMetadata)
-            => (_logger, _packageMetadata) = (logger, packageMetadata);
+        public NuGetDownloader(ILogger logger, IPackageMetadata packageMetadata, IPackageDownloader packageDownloader)
+            => (_logger, _packageMetadata, _packageDownloader) = (logger, packageMetadata, packageDownloader);
 
         public string Version { get; set; } = default;
         public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
@@ -110,7 +112,7 @@ namespace NugetPackageDownloader
                 var packageIdentities = await _packageMetadata.GetPackageIdentities(
                     packageName, version, targetFramework, cancellationToken);
 
-                await _packageMetadata.DownloadPackages(packageIdentities, outputPath, includePrerelease);
+                await _packageDownloader.DownloadPackages(packageIdentities, includePrerelease, cancellationToken);
             }
             catch (Exception)
             {

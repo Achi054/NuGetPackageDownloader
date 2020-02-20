@@ -5,30 +5,24 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using NuGet.Common;
-using NuGet.Configuration;
 using NuGet.Frameworks;
-using NuGet.PackageManagement;
 using NuGet.Packaging;
-using NuGet.Packaging.Signing;
-using NuGet.ProjectManagement;
 using NuGet.Protocol.Core.Types;
-using NuGet.Resolver;
 using NuGet.Versioning;
 
 using NugetPackageDownloader.Helpers;
-using NugetPackageDownloader.Resources.NuGet;
 using NuGetCore = NuGet.Packaging.Core;
 
 namespace NugetPackageDownloader.Resources.Metadata
 {
     public class PackageMetadata : IPackageMetadata
     {
-        private readonly NugetManager _nuGetManager;
+        private readonly NuGetManager _nuGetManager;
         private readonly ILogger _logger;
 
         private HashSet<PackageIdentity> _packageIdentities = new HashSet<PackageIdentity>();
 
-        public PackageMetadata(ILogger logger, NugetManager nugetManager)
+        public PackageMetadata(ILogger logger, NuGetManager nugetManager)
             => (_logger, _nuGetManager) = (logger, nugetManager);
 
         public async Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadata(
@@ -37,26 +31,33 @@ namespace NugetPackageDownloader.Resources.Metadata
             bool includePrerelease = default,
             CancellationToken cancellationToken = default)
         {
-            try
+            var packageSearchMetadatas = new HashSet<IPackageSearchMetadata>();
+
+            _logger.LogInformation($"Searching package metadata for {packageName}");
+
+            foreach (var nuGetRepository in _nuGetManager.NuGetSourceRepositories)
             {
-                _logger.LogInformation($"Searching package metadata for {packageName}");
-
-                var packageSearchResource = await GetPackageMetadataResource<PackageSearchResource>();
-
-                var searchFilter = new SearchFilter(includePrerelease, SearchFilterType.IsLatestVersion)
+                try
                 {
-                    SupportedFrameworks = new[] { targetFramework.ToNuGetFramework().ToString() },
-                    IncludeDelisted = false,
-                    OrderBy = SearchOrderBy.Id
-                };
+                    var packageSearchResource = await GetPackageMetadataResource<PackageSearchResource>(nuGetRepository);
 
-                return await packageSearchResource.SearchAsync(packageName, searchFilter, 0, 10, _logger, cancellationToken);
+                    var searchFilter = new SearchFilter(includePrerelease, SearchFilterType.IsLatestVersion)
+                    {
+                        SupportedFrameworks = new[] { targetFramework.ToNuGetFramework().ToString() },
+                        IncludeDelisted = false,
+                        OrderBy = SearchOrderBy.Id
+                    };
+
+                    packageSearchMetadatas.AddRange(await packageSearchResource.SearchAsync(packageName, searchFilter, 0, 10, _logger, cancellationToken));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Message: {ex.Message}\nStack Trace: {ex.StackTrace}");
+                    continue;
+                }
             }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Message: {ex.Message}\nStack Trace: {ex.StackTrace}");
-                throw;
-            }
+
+            return packageSearchMetadatas;
         }
 
         public async Task<IEnumerable<PackageIdentity>> GetPackageIdentities(
@@ -69,116 +70,57 @@ namespace NugetPackageDownloader.Resources.Metadata
 
             var packageIdentities = new HashSet<PackageIdentity>();
 
-            var packageMetadata = await GetPackageIdentity(name, version, targetFramework, cancellationToken);
-
-            if (packageMetadata != null && packageMetadata.DependentPackageIdentities.Any())
+            foreach (var nuGetSourceRepository in _nuGetManager.NuGetSourceRepositories)
             {
-                _logger.LogInformation($"Package Name: {packageMetadata.Name}\nPackage Version: {packageMetadata.Identity.Version.ToString()}\nDependencies:\n{string.Join("\n", packageMetadata.DependentPackageIdentities.Select(x => x.Id))}");
-
-                _packageIdentities.Add(packageMetadata);
-
-                var fetchIdentityTasks = new List<Task>();
-                foreach (var dependentPackageIdentity in packageMetadata.DependentPackageIdentities)
+                try
                 {
-                    fetchIdentityTasks.Add(Task.Run(async ()
-                        => _packageIdentities.AddRange(await GetPackageIdentities(
-                            dependentPackageIdentity.Id,
-                            dependentPackageIdentity.Version.ToString(),
-                            targetFramework,
-                            cancellationToken))));
-                }
+                    var packageMetadata = await GetPackageIdentity(name, version, targetFramework,
+                        nuGetSourceRepository, cancellationToken);
 
-                Task.WaitAll(fetchIdentityTasks.ToArray());
+                    if (packageMetadata != null && packageMetadata.DependentPackageIdentities.Any())
+                    {
+                        _logger.LogInformation($"Package Name: {packageMetadata.Name}\nPackage Version: {packageMetadata.Identity.Version.ToString()}\nDependencies:\n{string.Join("\n", packageMetadata.DependentPackageIdentities.Select(x => x.Id))}");
+
+                        _packageIdentities.Add(packageMetadata);
+
+                        var fetchIdentityTasks = new List<Task>();
+
+                        foreach (var dependentPackageIdentity in packageMetadata.DependentPackageIdentities)
+                        {
+                            fetchIdentityTasks.Add(Task.Run(async ()
+                                => _packageIdentities.AddRange(await GetPackageIdentities(
+                                    dependentPackageIdentity.Id,
+                                    dependentPackageIdentity.Version.ToString(),
+                                    targetFramework,
+                                    cancellationToken))));
+                        }
+
+                        Task.WaitAll(fetchIdentityTasks.ToArray());
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Message: {ex.Message}\nStack Trace: {ex.StackTrace}");
+                    continue;
+                }
             }
 
             return _packageIdentities;
         }
 
-        public Task DownloadPackages(
-            IEnumerable<PackageIdentity> packageIdentities,
-            string outputPath,
-            bool includePrerelease,
-            CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                if (packageIdentities != null && packageIdentities.Any())
-                {
-                    var packageToDownloadTask = new List<Task>();
-
-                    packageIdentities.ToList().ForEach(packageIdentity =>
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-
-                        packageToDownloadTask.Add(Task.Run(async () =>
-                        {
-                            if (packageIdentity != null)
-                            {
-                                var settings = Settings.LoadDefaultSettings(outputPath, null, new MachineWideSettings());
-
-                                var packageSourceProvider = new PackageSourceProvider(settings);
-                                var sourceRepositoryProvider = new SourceRepositoryProvider(packageSourceProvider, _nuGetManager.ResourceProviders);
-
-                                var project = new FolderNuGetProject(outputPath);
-                                var packageManager = new NuGetPackageManager(sourceRepositoryProvider, settings, outputPath)
-                                {
-                                    PackagesFolderNuGetProject = project
-                                };
-
-                                var resolutionContext = new ResolutionContext(DependencyBehavior.Lowest, includePrerelease, false, VersionConstraints.None);
-                                resolutionContext.SourceCacheContext.NoCache = resolutionContext.SourceCacheContext.DirectDownload = true;
-
-                                bool packageAlreadyExists = packageManager.PackageExistsInPackagesFolder(packageIdentity.Identity, PackageSaveMode.None);
-                                if (!packageAlreadyExists)
-                                {
-                                    var downloadContext = new PackageDownloadContext(resolutionContext.SourceCacheContext,
-                                        outputPath, resolutionContext.SourceCacheContext.DirectDownload);
-
-                                    var projectContext = new ProjectContext(_logger)
-                                    {
-                                        PackageExtractionContext = new PackageExtractionContext(PackageSaveMode.Files, XmlDocFileSaveMode.None, ClientPolicyContext.GetClientPolicy(settings, _logger), _logger)
-                                    };
-
-                                    await packageManager.InstallPackageAsync(
-                                       project,
-                                       packageIdentity.Identity,
-                                       resolutionContext,
-                                       projectContext,
-                                       downloadContext,
-                                       _nuGetManager.SourceRepository,
-                                       Array.Empty<SourceRepository>(),
-                                       CancellationToken.None);
-
-                                    _logger.LogInformation($"Download of package {packageIdentity.Name}.{packageIdentity.Version.ToString()} is complete");
-                                }
-                            }
-                        }));
-                    });
-
-                    Task.WaitAll(packageToDownloadTask.ToArray());
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Download packages failed due to the below errors:\nMessage:{ex.Message}\nStackTrace:{ex.StackTrace}");
-                throw;
-            }
-
-            return Task.CompletedTask;
-        }
-
-        private async Task<T> GetPackageMetadataResource<T>() where T : class, INuGetResource
-            => await _nuGetManager.SourceRepository.GetResourceAsync<T>();
+        private async Task<T> GetPackageMetadataResource<T>(SourceRepository nuGetRepository) where T : class, INuGetResource
+            => await nuGetRepository.GetResourceAsync<T>();
 
         private async Task<PackageIdentity> GetPackageIdentity(
             string name,
             string version,
             TargetFramework targetFramework,
+            SourceRepository sourceRepository,
             CancellationToken cancellationToken)
         {
             PackageIdentity nuGetPackageIdentity = null;
 
-            var packageSearchMetadata = await GetPackageMetadata(name, version, cancellationToken);
+            var packageSearchMetadata = await GetPackageMetadata(name, version, sourceRepository, cancellationToken);
 
             if (packageSearchMetadata != null)
             {
@@ -188,18 +130,22 @@ namespace NugetPackageDownloader.Resources.Metadata
             return nuGetPackageIdentity;
         }
 
-        private async Task<IPackageSearchMetadata> GetPackageMetadata(string name, string version, CancellationToken cancellationToken)
+        private async Task<IPackageSearchMetadata> GetPackageMetadata(
+            string name,
+            string version,
+            SourceRepository sourceRepository,
+            CancellationToken cancellationToken)
         {
             IPackageSearchMetadata packageSearchMetadata;
 
-            var packageMetadataResource = await _nuGetManager.SourceRepository.GetResourceAsync<PackageMetadataResource>();
+            var packageMetadataResource = await GetPackageMetadataResource<PackageMetadataResource>(sourceRepository);
 
             if (NuGetVersion.TryParse(version, out var nugetVersion))
             {
                 var packageIdentity = new NuGetCore.PackageIdentity(name, nugetVersion);
 
                 var packageMetadata = await packageMetadataResource.GetMetadataAsync(
-                    packageIdentity, _nuGetManager.SourceCacheContext, _logger, cancellationToken);
+                    packageIdentity, _nuGetManager.NuGetSourceCacheContext, _logger, cancellationToken);
 
                 if (packageMetadata == null)
                     _logger.LogInformation($"Package {name}.{version} not found");
@@ -209,7 +155,7 @@ namespace NugetPackageDownloader.Resources.Metadata
             else
             {
                 var packageMetadatas = await packageMetadataResource.GetMetadataAsync(
-                    name, true, true, _nuGetManager.SourceCacheContext, _logger, cancellationToken);
+                    name, true, true, _nuGetManager.NuGetSourceCacheContext, _logger, cancellationToken);
 
                 if (packageMetadatas.Any())
                     _logger.LogInformation($"Package {name} not found");

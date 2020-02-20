@@ -21,10 +21,5 @@ namespace NugetPackageDownloader.Resources.Metadata
             string version,
             TargetFramework targetFramework = TargetFramework.NETSTANDARD2_1,
             CancellationToken cancellationToken = default);
-
-        Task DownloadPackages(
-            IEnumerable<PackageIdentity> packageIdentities,
-            string outputPath, bool includePrerelease,
-            CancellationToken cancellationToken = default);
     }
 }
