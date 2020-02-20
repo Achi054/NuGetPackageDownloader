@@ -1,0 +1,27 @@
+version: '0.0.{build}'
+dotnet_csproj:
+  patch: true
+  file: '**\*.csproj'
+  version: '{version}'
+  package_version: '{version}'
+  assembly_version: '{version}'
+  file_version: '{version}'
+  informational_version: '{version}'
+clone_folder: c:\projects\NuGetDownloader
+branches:
+  only:
+    - master
+skip_tags: true
+cache:
+  - packages -> **\packages.config
+platform: Any CPU
+configuration: Release
+test:
+  assemblies:
+    - '**\*Tests.dll'
+build_script:
+  - ps: ./build.ps1 --target=CI
+install:
+  - ps: Set-Service wuauserv -StartupType Manual
+  - cinst -y php
+  - choco install dotnetcore-sdk
