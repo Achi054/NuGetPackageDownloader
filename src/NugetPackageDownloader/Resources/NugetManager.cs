@@ -5,12 +5,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using NuGet.Common;
 using NuGet.Configuration;
+using NuGet.Frameworks;
 using NuGet.PackageManagement;
 using NuGet.Packaging;
 using NuGet.Packaging.Signing;
 using NuGet.ProjectManagement;
 using NuGet.Protocol.Core.Types;
 using NuGet.Resolver;
+using NugetPackageDownloader.Helpers;
 using NugetPackageDownloader.Resources.NuGet;
 using NuGetCore = NuGet.Packaging.Core;
 
@@ -24,12 +26,15 @@ namespace NugetPackageDownloader.Resources
         private const string disallowedPackageSourcesSection = "disabledPackageSources";
 
         public NuGetManager(ILogger logger,
+            TargetFramework targetFramework = TargetFramework.NETSTANDARD2_0,
             bool includePrerelease = default,
             IEnumerable<string> nuGetFeeds = default)
         {
             Logger = logger;
 
             IncludePrerelease = includePrerelease;
+
+            NuGetFramework = targetFramework.ToNuGetFramework();
 
             NuGetSourceCacheContext = new SourceCacheContext
             {
@@ -79,7 +84,7 @@ namespace NugetPackageDownloader.Resources
             // Initialize package project context
             NuGetProjectContext = NuGetProjectContext ?? new ProjectContext(logger)
             {
-                PackageExtractionContext = new PackageExtractionContext(PackageSaveMode.Files, XmlDocFileSaveMode.None, ClientPolicyContext.GetClientPolicy(NuGetSettings, logger), logger)
+                PackageExtractionContext = new PackageExtractionContext(PackageSaveMode.Defaultv2, XmlDocFileSaveMode.None, ClientPolicyContext.GetClientPolicy(NuGetSettings, logger), logger)
             };
         }
 
@@ -106,6 +111,8 @@ namespace NugetPackageDownloader.Resources
         public ILogger Logger { get; }
 
         public bool IncludePrerelease { get; }
+
+        public NuGetFramework NuGetFramework { get; }
 
         /// <summary>
         /// Download NuGet packages based on Package Identity

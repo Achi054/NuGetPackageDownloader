@@ -10,5 +10,11 @@ namespace NugetPackageDownloader.Resources.Downloader
             IEnumerable<PackageIdentity> packageIdentities,
             NuGetManager nuGetManager,
             CancellationToken cancellationToken = default);
+
+        Task ExtractPackageAssemblies(
+            string outputPath,
+            IEnumerable<PackageIdentity> packageIdentities,
+            NuGetManager nuGetManager,
+            CancellationToken cancellationToken = default);
     }
 }

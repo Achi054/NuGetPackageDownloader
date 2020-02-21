@@ -9,8 +9,6 @@ using NuGet.Frameworks;
 using NuGet.Packaging;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
-
-using NugetPackageDownloader.Helpers;
 using NuGetCore = NuGet.Packaging.Core;
 
 namespace NugetPackageDownloader.Resources.Metadata
@@ -24,7 +22,6 @@ namespace NugetPackageDownloader.Resources.Metadata
         public async Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadata(
             string packageName,
             NuGetManager nuGetManager,
-            TargetFramework targetFramework = TargetFramework.NETSTANDARD2_1,
             CancellationToken cancellationToken = default)
         {
             var packageSearchMetadatas = new HashSet<IPackageSearchMetadata>();
@@ -39,7 +36,7 @@ namespace NugetPackageDownloader.Resources.Metadata
 
                     var searchFilter = new SearchFilter(nuGetManager.IncludePrerelease, SearchFilterType.IsLatestVersion)
                     {
-                        SupportedFrameworks = new[] { targetFramework.ToNuGetFramework().ToString() },
+                        SupportedFrameworks = new[] { nuGetManager.NuGetFramework.ToString() },
                         IncludeDelisted = false,
                         OrderBy = SearchOrderBy.Id
                     };
@@ -60,7 +57,6 @@ namespace NugetPackageDownloader.Resources.Metadata
             string name,
             string version,
             NuGetManager nuGetManager,
-            TargetFramework targetFramework = TargetFramework.NETSTANDARD2_1,
             CancellationToken cancellationToken = default)
         {
             _logger.LogInformation($"Fetching package identities");
@@ -71,7 +67,7 @@ namespace NugetPackageDownloader.Resources.Metadata
             {
                 try
                 {
-                    var packageMetadata = await GetPackageIdentity(name, version, targetFramework,
+                    var packageMetadata = await GetPackageIdentity(name, version,
                         nuGetManager, nuGetSourceRepository, cancellationToken);
 
                     if (packageMetadata != null && packageMetadata.DependentPackageIdentities.Any())
@@ -89,7 +85,6 @@ namespace NugetPackageDownloader.Resources.Metadata
                                     dependentPackageIdentity.Id,
                                     dependentPackageIdentity.Version.ToString(),
                                     nuGetManager,
-                                    targetFramework,
                                     cancellationToken))));
                         }
 
@@ -112,7 +107,6 @@ namespace NugetPackageDownloader.Resources.Metadata
         private async Task<PackageIdentity> GetPackageIdentity(
             string name,
             string version,
-            TargetFramework targetFramework,
             NuGetManager nuGetManager,
             SourceRepository sourceRepository,
             CancellationToken cancellationToken)
@@ -123,7 +117,7 @@ namespace NugetPackageDownloader.Resources.Metadata
 
             if (packageSearchMetadata != null)
             {
-                nuGetPackageIdentity = new PackageIdentity(packageSearchMetadata.Identity.Id, packageSearchMetadata.Identity.Version, packageSearchMetadata.Identity, GetDependentPackageIdentity(packageSearchMetadata, targetFramework));
+                nuGetPackageIdentity = new PackageIdentity(packageSearchMetadata.Identity.Id, packageSearchMetadata.Identity.Version, packageSearchMetadata.Identity, GetDependentPackageIdentity(packageSearchMetadata, nuGetManager.NuGetFramework));
             }
 
             return nuGetPackageIdentity;
@@ -169,14 +163,14 @@ namespace NugetPackageDownloader.Resources.Metadata
         }
 
         private HashSet<NuGetCore.PackageIdentity> GetDependentPackageIdentity
-            (IPackageSearchMetadata packageSearchMetadata, TargetFramework targetFramework)
+            (IPackageSearchMetadata packageSearchMetadata, NuGetFramework targetFramework)
         {
             var dependentPackageIdentities = new HashSet<NuGetCore.PackageIdentity>();
 
             if (packageSearchMetadata.DependencySets != null && packageSearchMetadata.DependencySets.Any())
             {
                 var mostCompatibleFramework =
-                    GetMostCompatibleFramework(targetFramework.ToNuGetFramework(), packageSearchMetadata.DependencySets);
+                    GetMostCompatibleFramework(targetFramework, packageSearchMetadata.DependencySets);
 
                 if (packageSearchMetadata.DependencySets.Any(x => x.TargetFramework == mostCompatibleFramework))
                 {

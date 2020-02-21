@@ -19,5 +19,10 @@ namespace NugetPackageDownloader
             string packageName,
             TargetFramework targetFramework,
             Action<NuGetDownloader> downloaderOptions = default);
+
+        Task DownloadAndExtractPackage(
+            string packageName,
+            TargetFramework targetFramework,
+            Action<NuGetDownloader> downloaderOptions = default);
     }
 }

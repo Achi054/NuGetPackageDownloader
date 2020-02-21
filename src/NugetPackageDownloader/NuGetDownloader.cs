@@ -24,7 +24,7 @@ namespace NugetPackageDownloader
 
         public string Version { get; set; } = default;
         public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
-        public string OutputPath { get; set; } = default;
+        public string OutputPath { get; set; } = AppDomain.CurrentDomain.BaseDirectory;
         public bool IncludePrerelease { get; set; } = default;
         public IEnumerable<string> NuGetSourceRepositories { get; set; }
 
@@ -67,6 +67,48 @@ namespace NugetPackageDownloader
             return await GetPackageSearchMetadata(packageName, targetFramework, CancellationToken);
         }
 
+        /// <summary>
+        /// Download and Extract the package content
+        /// </summary>
+        /// <param name="packageName"></param>
+        /// <param name="targetFramework"></param>
+        /// <param name="downloaderOptions"></param>
+        /// <returns></returns>
+        public async Task DownloadAndExtractPackage(
+            string packageName,
+            TargetFramework targetFramework,
+            Action<NuGetDownloader> downloaderOptions = null)
+        {
+            downloaderOptions?.Invoke(this);
+            await DownloadAndExtractPackage(packageName, targetFramework, CancellationToken);
+        }
+
+        private async Task DownloadAndExtractPackage(
+            string packageName,
+            TargetFramework targetFramework,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogInformation($"Downloading and extraction of package {packageName}.{Version} started");
+
+            try
+            {
+                var nuGetManager = new NuGetManager(_logger, targetFramework, IncludePrerelease, NuGetSourceRepositories);
+
+                var packageIdentities = await _packageMetadata.GetPackageIdentities(
+                    packageName, Version, nuGetManager, cancellationToken);
+
+                await _packageDownloader.DownloadPackages(packageIdentities, nuGetManager, cancellationToken);
+
+                await _packageDownloader.ExtractPackageAssemblies(OutputPath, packageIdentities, nuGetManager, cancellationToken);
+            }
+            catch (Exception)
+            {
+                _logger.LogError($"Downloading and extraction of package {packageName}.{Version} failed.");
+            }
+
+            _logger.LogInformation($"Download and extraction of package {packageName}.{Version} completed");
+        }
+
         private async Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadata(
             string packageName,
             TargetFramework targetFramework,
@@ -84,9 +126,9 @@ namespace NugetPackageDownloader
 
             try
             {
-                var nuGetManager = new NuGetManager(_logger, IncludePrerelease, NuGetSourceRepositories);
+                var nuGetManager = new NuGetManager(_logger, targetFramework, IncludePrerelease, NuGetSourceRepositories);
 
-                packageMetadata = await _packageMetadata.GetPackageSearchMetadata(packageName, nuGetManager, targetFramework, cancellationToken);
+                packageMetadata = await _packageMetadata.GetPackageSearchMetadata(packageName, nuGetManager, cancellationToken);
             }
             catch (Exception)
             {
@@ -107,10 +149,10 @@ namespace NugetPackageDownloader
 
             try
             {
-                var nuGetManager = new NuGetManager(_logger, IncludePrerelease, NuGetSourceRepositories);
+                var nuGetManager = new NuGetManager(_logger, targetFramework, IncludePrerelease, NuGetSourceRepositories);
 
                 var packageIdentities = await _packageMetadata.GetPackageIdentities(
-                    packageName, Version, nuGetManager, targetFramework, cancellationToken);
+                    packageName, Version, nuGetManager, cancellationToken);
 
                 await _packageDownloader.DownloadPackages(packageIdentities, nuGetManager, cancellationToken);
             }

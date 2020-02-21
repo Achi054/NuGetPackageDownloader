@@ -28,7 +28,7 @@ namespace NuGetDownloadTester
                                         .BuildServiceProvider();
 
             var nuGetdownloader = serviceProvider.GetRequiredService<INuGetDownloader>();
-            await nuGetdownloader.DownloadPackage(
+            await nuGetdownloader.DownloadAndExtractPackage(
                 NUGET_PACKAGE_NAME,
                 TargetFramework.NETSTANDARD2_1,
                 downloaderOptions =>

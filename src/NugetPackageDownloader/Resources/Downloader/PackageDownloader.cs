@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 using NuGet.Common;
+using NuGet.Frameworks;
 using NuGet.Packaging;
+using NuGet.ProjectManagement;
+using NuGetCore = NuGet.Packaging.Core;
 
 namespace NugetPackageDownloader.Resources.Downloader
 {
@@ -58,5 +62,112 @@ namespace NugetPackageDownloader.Resources.Downloader
 
             return Task.CompletedTask;
         }
+
+        public async Task ExtractPackageAssemblies(
+            string outputPath,
+            IEnumerable<PackageIdentity> packageIdentities,
+            NuGetManager nuGetManager,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                if (packageIdentities != null && packageIdentities.Any())
+                {
+                    foreach (var packageIdentity in packageIdentities)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        await CopyNuGetAssemblies(outputPath, nuGetManager, packageIdentity.Identity, cancellationToken);
+
+                        var copyNugetAssemblyTask = new List<Task>();
+
+                        packageIdentity.DependentPackageIdentities.ToList()
+                            .ForEach(dependentPackageIdentity =>
+                           {
+                               copyNugetAssemblyTask.Add(CopyNuGetAssemblies(outputPath, nuGetManager, dependentPackageIdentity, cancellationToken));
+                           });
+
+                        Task.WaitAll(copyNugetAssemblyTask.ToArray());
+                    }
+                }
+
+                _logger.LogInformation("Extracting package assets complete");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Extracting package assets failed due to the below errors:\nMessage:{ex.Message}\nStackTrace:{ex.StackTrace}");
+                throw;
+            }
+        }
+
+        private Task CopyNuGetAssemblies(
+            string outputPath,
+            NuGetManager nuGetManager,
+            NuGetCore.PackageIdentity packageIdentity,
+            CancellationToken cancellationToken = default)
+        {
+            if (nuGetManager.NuGetProject is FolderNuGetProject nuGetProject)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var packageFilePath = nuGetProject.GetInstalledPackageFilePath(packageIdentity);
+                if (!string.IsNullOrWhiteSpace(packageFilePath))
+                {
+                    var archiveReader = new PackageArchiveReader(packageFilePath, null, null);
+                    var referenceGroup = GetMostCompatibleGroup(nuGetManager.NuGetFramework, archiveReader.GetReferenceItems());
+
+                    if (referenceGroup != null && referenceGroup.Items != null && referenceGroup.Items.Any())
+                    {
+                        if (!Directory.Exists(outputPath))
+                        {
+                            Directory.CreateDirectory(outputPath);
+                        }
+
+                        _logger.LogInformation($"Output path: {outputPath}\n");
+
+                        var nuGetPackagePath = nuGetProject.GetInstalledPath(packageIdentity);
+                        referenceGroup.Items.ToList().ForEach(async x =>
+                        {
+                            var assembly = $@"{nuGetPackagePath}\{x}";
+                            using (Stream source = File.Open(assembly, FileMode.Open))
+                            {
+                                var assemblyName = Path.GetFileName(assembly);
+                                var destinationAssemblyName = Path.Combine(outputPath, assemblyName);
+
+                                _logger.LogInformation($"{assemblyName} copied");
+                                using (Stream destination = File.Create(destinationAssemblyName))
+                                    await source.CopyToAsync(destination);
+                            }
+                        });
+                    }
+                }
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private FrameworkSpecificGroup GetMostCompatibleGroup(
+            NuGetFramework projectTargetFramework,
+            IEnumerable<FrameworkSpecificGroup> itemGroups)
+        {
+            var mostCompatibleFramework = new FrameworkReducer()
+                .GetNearest(projectTargetFramework, itemGroups.Select(i => i.TargetFramework));
+
+            if (mostCompatibleFramework != null)
+            {
+                var mostCompatibleGroup = itemGroups.FirstOrDefault(i => i.TargetFramework.Equals(mostCompatibleFramework));
+
+                if (IsValid(mostCompatibleGroup))
+                    return mostCompatibleGroup;
+            }
+
+            return null;
+        }
+
+        private bool IsValid(FrameworkSpecificGroup frameworkSpecificGroup) => frameworkSpecificGroup != null
+                ? frameworkSpecificGroup.HasEmptyFolder
+                        || frameworkSpecificGroup.Items.Any()
+                        || !frameworkSpecificGroup.TargetFramework.Equals(NuGetFramework.AnyFramework)
+                : false;
     }
 }
