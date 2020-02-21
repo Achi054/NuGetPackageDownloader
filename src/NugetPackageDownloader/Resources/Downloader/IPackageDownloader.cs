@@ -8,7 +8,7 @@ namespace NugetPackageDownloader.Resources.Downloader
     {
         Task DownloadPackages(
             IEnumerable<PackageIdentity> packageIdentities,
-            bool includePrerelease,
+            NuGetManager nuGetManager,
             CancellationToken cancellationToken = default);
     }
 }

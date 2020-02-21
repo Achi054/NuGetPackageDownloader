@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using NugetPackageDownloader;
 using NugetPackageDownloader.Helpers;
 using NugetPackageDownloader.Logging;
-using NugetPackageDownloader.Resources;
 using NugetPackageDownloader.Resources.Downloader;
 using NugetPackageDownloader.Resources.Metadata;
 
@@ -23,7 +22,6 @@ namespace NuGetDownloadTester
             var serviceProvider = new ServiceCollection()
                                         .AddLogging(configure => configure.AddConsole())
                                         .AddSingleton<NuGet.Common.ILogger, NuGetLogger>()
-                                        .AddSingleton<NuGetManager>()
                                         .AddSingleton<IPackageMetadata, PackageMetadata>()
                                         .AddSingleton<IPackageDownloader, PackageDownloader>()
                                         .AddSingleton<INuGetDownloader, NuGetDownloader>()

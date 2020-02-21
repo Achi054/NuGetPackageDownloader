@@ -19,15 +19,17 @@ namespace NugetPackageDownloader.Resources
     public class NuGetManager
     {
         // Read from source nuget.config
-        private const string nuGetPath = "nuget";
+        private const string nuGetFolder = "nuget";
         private const string packageSourcesSection = "packageSources";
         private const string disallowedPackageSourcesSection = "disabledPackageSources";
 
-        public NuGetManager(ILogger logger)
+        public NuGetManager(ILogger logger,
+            bool includePrerelease = default,
+            IEnumerable<string> nuGetFeeds = default)
         {
             Logger = logger;
 
-            NuGetPath = $"{AppDomain.CurrentDomain.BaseDirectory}{nuGetPath}";
+            IncludePrerelease = includePrerelease;
 
             NuGetSourceCacheContext = new SourceCacheContext
             {
@@ -41,22 +43,24 @@ namespace NugetPackageDownloader.Resources
             // Add API support for v3, include v2 support if needed
             NuGetResourceProviders.AddRange(Repository.Provider.GetCoreV3());
 
+            NuGetPath = $"{AppDomain.CurrentDomain.BaseDirectory}{nuGetFolder}";
+
             // Set NuGet project
-            NuGetProject = new FolderNuGetProject(NuGetPath);
+            NuGetProject = NuGetProject ?? new FolderNuGetProject(NuGetPath);
 
             // NuGet config settings
-            NuGetSettings = Settings.LoadDefaultSettings(NuGetPath, null, new MachineWideSettings());
+            NuGetSettings = NuGetSettings ?? Settings.LoadDefaultSettings(NuGetPath, null, new MachineWideSettings());
 
             // Initialize NuGetPackageManager
-            NuGetPackageManager = InitializeNuGetPackageManager();
+            NuGetPackageManager = NuGetPackageManager ?? InitializeNuGetPackageManager();
 
             // Initialize NuGet Source Repositories
-            InitializeNuGetSourceRepositories();
+            NuGetSourceRepositories = NuGetSourceRepositories ?? InitializeNuGetSourceRepositories(nuGetFeeds);
 
             // Initialize package resolution context
-            NuGetResolutionContext = new ResolutionContext(
+            NuGetResolutionContext = NuGetResolutionContext ?? new ResolutionContext(
                 DependencyBehavior.Lowest,
-                IncludePrerelease,
+                includePrerelease,
                 false,
                 VersionConstraints.None,
                 new GatherCache(),
@@ -67,22 +71,16 @@ namespace NugetPackageDownloader.Resources
                 });
 
             // Initialize package download context
-            NuGetDownloadContext = new PackageDownloadContext(
+            NuGetDownloadContext = NuGetDownloadContext ?? new PackageDownloadContext(
                 NuGetResolutionContext.SourceCacheContext,
                 NuGetPath,
                 NuGetResolutionContext.SourceCacheContext.DirectDownload);
 
             // Initialize package project context
-            NuGetProjectContext = new ProjectContext(Logger)
+            NuGetProjectContext = NuGetProjectContext ?? new ProjectContext(logger)
             {
-                PackageExtractionContext = new PackageExtractionContext(PackageSaveMode.Files, XmlDocFileSaveMode.None, ClientPolicyContext.GetClientPolicy(NuGetSettings, Logger), Logger)
+                PackageExtractionContext = new PackageExtractionContext(PackageSaveMode.Files, XmlDocFileSaveMode.None, ClientPolicyContext.GetClientPolicy(NuGetSettings, logger), logger)
             };
-        }
-
-        public NuGetManager(Action<NuGetManager> nuGetManagerOptions)
-        {
-            nuGetManagerOptions?.Invoke(this);
-            new NuGetManager(Logger);
         }
 
         public List<Lazy<INuGetResourceProvider>> NuGetResourceProviders { get; }
@@ -101,13 +99,13 @@ namespace NugetPackageDownloader.Resources
 
         public NuGetProject NuGetProject { get; }
 
-        public bool IncludePrerelease { get; set; }
+        public IEnumerable<SourceRepository> NuGetSourceRepositories { get; }
 
-        public string NuGetPath { get; set; }
+        public string NuGetPath { get; }
 
-        public ILogger Logger { get; set; }
+        public ILogger Logger { get; }
 
-        public ICollection<SourceRepository> NuGetSourceRepositories { get; set; } = new HashSet<SourceRepository>();
+        public bool IncludePrerelease { get; }
 
         /// <summary>
         /// Download NuGet packages based on Package Identity
@@ -141,21 +139,42 @@ namespace NugetPackageDownloader.Resources
             };
         }
 
-        private void InitializeNuGetSourceRepositories()
+        private IEnumerable<SourceRepository> InitializeNuGetSourceRepositories(IEnumerable<string> nuGetFeeds)
         {
-            var disallowedPackageSources = NuGetSettings.GetSection(disallowedPackageSourcesSection).Items.Select(x => (AddItem)x);
+            var sourceRepositories = new HashSet<SourceRepository>();
 
-            foreach (SourceItem section in NuGetSettings.GetSection(packageSourcesSection).Items)
+            if (nuGetFeeds != null && nuGetFeeds.Any())
             {
-                if (Uri.TryCreate(section.Value, UriKind.Absolute, out Uri uri)
-                    && !uri.IsFile
-                    && !disallowedPackageSources.Any(x => x.Key == section.Key))
+                foreach (var nuGetFeed in nuGetFeeds)
                 {
-                    var sourceRepository = new SourceRepository(new PackageSource(uri.ToString()), NuGetResourceProviders);
-                    if (IsNuGetSourceValid(sourceRepository))
-                        NuGetSourceRepositories.Add(sourceRepository);
+                    if (Uri.TryCreate(nuGetFeed, UriKind.Absolute, out Uri uri)
+                        && !uri.IsFile)
+                        sourceRepositories.Add(GetSourceRepository(uri));
                 }
             }
+            else
+            {
+                var disallowedPackageSources = NuGetSettings.GetSection(disallowedPackageSourcesSection).Items.Select(x => (AddItem)x);
+
+                foreach (SourceItem section in NuGetSettings.GetSection(packageSourcesSection).Items)
+                {
+                    if (Uri.TryCreate(section.Value, UriKind.Absolute, out Uri uri)
+                        && !uri.IsFile
+                        && !disallowedPackageSources.Any(x => x.Key == section.Key))
+                        sourceRepositories.Add(GetSourceRepository(uri));
+                }
+            }
+
+            return sourceRepositories.Where(x => x != null);
+        }
+
+        private SourceRepository GetSourceRepository(Uri feedUri)
+        {
+            var sourceRepository = new SourceRepository(new PackageSource(feedUri.ToString()), NuGetResourceProviders);
+
+            if (IsNuGetSourceValid(sourceRepository))
+                return sourceRepository;
+            return null;
         }
 
         private bool IsNuGetSourceValid(SourceRepository sourceRepository)

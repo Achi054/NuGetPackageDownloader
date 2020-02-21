@@ -11,15 +11,13 @@ namespace NugetPackageDownloader.Resources.Downloader
 {
     public class PackageDownloader : IPackageDownloader
     {
-        private readonly NuGetManager _nuGetManager;
         private readonly ILogger _logger;
 
-        public PackageDownloader(ILogger logger, NuGetManager nugetManager)
-            => (_logger, _nuGetManager) = (logger, nugetManager);
+        public PackageDownloader(ILogger logger) => _logger = logger;
 
         public Task DownloadPackages(
             IEnumerable<PackageIdentity> packageIdentities,
-            bool includePrerelease,
+            NuGetManager nuGetManager,
             CancellationToken cancellationToken = default)
         {
             try
@@ -36,12 +34,12 @@ namespace NugetPackageDownloader.Resources.Downloader
                         {
                             if (packageIdentity != null)
                             {
-                                bool packageAlreadyExists = _nuGetManager.NuGetPackageManager.PackageExistsInPackagesFolder(
+                                bool packageAlreadyExists = nuGetManager.NuGetPackageManager.PackageExistsInPackagesFolder(
                                     packageIdentity.Identity, PackageSaveMode.None);
 
                                 if (!packageAlreadyExists)
                                 {
-                                    await _nuGetManager.DownloadPackages(packageIdentity.Identity, cancellationToken);
+                                    await nuGetManager.DownloadPackages(packageIdentity.Identity, cancellationToken);
 
                                     _logger.LogInformation($"Download of package {packageIdentity.Name}.{packageIdentity.Version.ToString()} is complete");
                                 }
