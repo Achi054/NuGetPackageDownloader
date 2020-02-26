@@ -79,11 +79,15 @@ namespace NugetPackageDownloader.Resources.Downloader
 
                         await CopyNuGetAssemblies(outputPath, nuGetManager, packageIdentity.Identity, cancellationToken);
 
+                        var copyTasks = new List<Task>();
+
                         packageIdentity.DependentPackageIdentities.ToList()
-                            .ForEach(async dependentPackageIdentity =>
+                            .ForEach(dependentPackageIdentity =>
                             {
-                                await CopyNuGetAssemblies(outputPath, nuGetManager, dependentPackageIdentity, cancellationToken);
+                                copyTasks.Add(CopyNuGetAssemblies(outputPath, nuGetManager, dependentPackageIdentity, cancellationToken));
                             });
+
+                        Task.WaitAll(copyTasks.ToArray());
                     }
                 }
 
