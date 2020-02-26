@@ -13,11 +13,11 @@ using NuGetCore = NuGet.Packaging.Core;
 
 namespace NugetPackageDownloader.Resources.Downloader
 {
-    public class PackageDownloader : IPackageDownloader
+    internal class PackageDownloader : IPackageDownloader
     {
         private readonly ILogger _logger;
 
-        public PackageDownloader(ILogger logger) => _logger = logger;
+        internal PackageDownloader(ILogger logger = default) => _logger = logger;
 
         public Task DownloadPackages(
             IEnumerable<PackageIdentity> packageIdentities,
@@ -45,7 +45,7 @@ namespace NugetPackageDownloader.Resources.Downloader
                                 {
                                     await nuGetManager.DownloadPackages(packageIdentity.Identity, cancellationToken);
 
-                                    _logger.LogInformation($"Download of package {packageIdentity.Name}.{packageIdentity.Version.ToString()} is complete");
+                                    _logger?.LogInformation($"Download of package {packageIdentity.Name}.{packageIdentity.Version.ToString()} is complete");
                                 }
                             }
                         }));
@@ -56,7 +56,7 @@ namespace NugetPackageDownloader.Resources.Downloader
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Download packages failed due to the below errors:\nMessage:{ex.Message}\nStackTrace:{ex.StackTrace}");
+                _logger?.LogError($"Download packages failed due to the below errors:\nMessage:{ex.Message}\nStackTrace:{ex.StackTrace}");
                 throw;
             }
 
@@ -79,28 +79,24 @@ namespace NugetPackageDownloader.Resources.Downloader
 
                         await CopyNuGetAssemblies(outputPath, nuGetManager, packageIdentity.Identity, cancellationToken);
 
-                        var copyNugetAssemblyTask = new List<Task>();
-
                         packageIdentity.DependentPackageIdentities.ToList()
-                            .ForEach(dependentPackageIdentity =>
-                           {
-                               copyNugetAssemblyTask.Add(CopyNuGetAssemblies(outputPath, nuGetManager, dependentPackageIdentity, cancellationToken));
-                           });
-
-                        Task.WaitAll(copyNugetAssemblyTask.ToArray());
+                            .ForEach(async dependentPackageIdentity =>
+                            {
+                                await CopyNuGetAssemblies(outputPath, nuGetManager, dependentPackageIdentity, cancellationToken);
+                            });
                     }
                 }
 
-                _logger.LogInformation("Extracting package assets complete");
+                _logger?.LogInformation("Extracting package assets complete");
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Extracting package assets failed due to the below errors:\nMessage:{ex.Message}\nStackTrace:{ex.StackTrace}");
+                _logger?.LogError($"Extracting package assets failed due to the below errors:\nMessage:{ex.Message}\nStackTrace:{ex.StackTrace}");
                 throw;
             }
         }
 
-        private Task CopyNuGetAssemblies(
+        private async Task CopyNuGetAssemblies(
             string outputPath,
             NuGetManager nuGetManager,
             NuGetCore.PackageIdentity packageIdentity,
@@ -123,27 +119,21 @@ namespace NugetPackageDownloader.Resources.Downloader
                             Directory.CreateDirectory(outputPath);
                         }
 
-                        _logger.LogInformation($"Output path: {outputPath}\n");
+                        _logger?.LogInformation($"Output path: {outputPath}\n");
 
                         var nuGetPackagePath = nuGetProject.GetInstalledPath(packageIdentity);
-                        referenceGroup.Items.ToList().ForEach(async x =>
+                        referenceGroup.Items.ToList().ForEach(x =>
                         {
-                            var assembly = $@"{nuGetPackagePath}\{x}";
-                            using (Stream source = File.Open(assembly, FileMode.Open))
-                            {
-                                var assemblyName = Path.GetFileName(assembly);
-                                var destinationAssemblyName = Path.Combine(outputPath, assemblyName);
+                            var sourceAssemblyPath = $@"{nuGetPackagePath}\{x}".Replace('/', '\\');
 
-                                _logger.LogInformation($"{assemblyName} copied");
-                                using (Stream destination = File.Create(destinationAssemblyName))
-                                    await source.CopyToAsync(destination);
-                            }
+                            var assemblyName = Path.GetFileName(sourceAssemblyPath);
+                            var destinationAssemblyName = Path.Combine(outputPath, assemblyName);
+
+                            File.Copy(sourceAssemblyPath, destinationAssemblyName, true);
                         });
                     }
                 }
             }
-
-            return Task.CompletedTask;
         }
 
         private FrameworkSpecificGroup GetMostCompatibleGroup(

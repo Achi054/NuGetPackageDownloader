@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace NugetPackageDownloader.Resources.Downloader
 {
-    public interface IPackageDownloader
+    internal interface IPackageDownloader
     {
         Task DownloadPackages(
             IEnumerable<PackageIdentity> packageIdentities,

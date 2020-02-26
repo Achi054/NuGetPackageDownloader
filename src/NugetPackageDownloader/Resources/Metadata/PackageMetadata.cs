@@ -13,11 +13,12 @@ using NuGetCore = NuGet.Packaging.Core;
 
 namespace NugetPackageDownloader.Resources.Metadata
 {
-    public class PackageMetadata : IPackageMetadata
+    internal class PackageMetadata : IPackageMetadata
     {
         private readonly ILogger _logger;
+        private ICollection<PackageIdentity> _packageIdentities;
 
-        public PackageMetadata(ILogger logger) => _logger = logger;
+        public PackageMetadata(ILogger logger = default) => (_logger, _packageIdentities) = (logger, new HashSet<PackageIdentity>());
 
         public async Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadata(
             string packageName,
@@ -26,7 +27,7 @@ namespace NugetPackageDownloader.Resources.Metadata
         {
             var packageSearchMetadatas = new HashSet<IPackageSearchMetadata>();
 
-            _logger.LogInformation($"Searching package metadata for {packageName}");
+            _logger?.LogInformation($"Searching package metadata for {packageName}");
 
             foreach (var nuGetRepository in nuGetManager.NuGetSourceRepositories)
             {
@@ -45,7 +46,7 @@ namespace NugetPackageDownloader.Resources.Metadata
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError($"Message: {ex.Message}\nStack Trace: {ex.StackTrace}");
+                    _logger?.LogError($"Message: {ex.Message}\nStack Trace: {ex.StackTrace}");
                     continue;
                 }
             }
@@ -59,9 +60,7 @@ namespace NugetPackageDownloader.Resources.Metadata
             NuGetManager nuGetManager,
             CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation($"Fetching package identities");
-
-            var packageIdentities = new HashSet<PackageIdentity>();
+            _logger?.LogInformation($"Fetching package identities");
 
             foreach (var nuGetSourceRepository in nuGetManager.NuGetSourceRepositories)
             {
@@ -70,35 +69,34 @@ namespace NugetPackageDownloader.Resources.Metadata
                     var packageMetadata = await GetPackageIdentity(name, version,
                         nuGetManager, nuGetSourceRepository, cancellationToken);
 
-                    if (packageMetadata != null && packageMetadata.DependentPackageIdentities.Any())
+                    if (packageMetadata != null)
                     {
-                        _logger.LogInformation($"Package Name: {packageMetadata.Name}\nPackage Version: {packageMetadata.Identity.Version.ToString()}\nDependencies:\n{string.Join("\n", packageMetadata.DependentPackageIdentities.Select(x => x.Id))}");
+                        _packageIdentities.Add(packageMetadata);
 
-                        packageIdentities.Add(packageMetadata);
-
-                        var fetchIdentityTasks = new List<Task>();
-
-                        foreach (var dependentPackageIdentity in packageMetadata.DependentPackageIdentities)
+                        if (packageMetadata.DependentPackageIdentities.Any())
                         {
-                            fetchIdentityTasks.Add(Task.Run(async ()
-                                => packageIdentities.AddRange(await GetPackageIdentities(
-                                    dependentPackageIdentity.Id,
-                                    dependentPackageIdentity.Version.ToString(),
-                                    nuGetManager,
-                                    cancellationToken))));
-                        }
+                            _logger?.LogInformation($"Package Name: {packageMetadata.Name}\nPackage Version: {packageMetadata.Identity.Version.ToString()}\nDependencies:\n{string.Join("\n", packageMetadata.DependentPackageIdentities.Select(x => x.Id))}");
 
-                        Task.WaitAll(fetchIdentityTasks.ToArray());
+
+                            foreach (var dependentPackageIdentity in packageMetadata.DependentPackageIdentities)
+                            {
+                                _packageIdentities.AddRange(await GetPackageIdentities(
+                                        dependentPackageIdentity.Id,
+                                        dependentPackageIdentity.Version.ToString(),
+                                        nuGetManager,
+                                        cancellationToken));
+                            }
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError($"Message: {ex.Message}\nStack Trace: {ex.StackTrace}");
+                    _logger?.LogError($"Message: {ex.Message}\nStack Trace: {ex.StackTrace}");
                     continue;
                 }
             }
 
-            return packageIdentities;
+            return _packageIdentities;
         }
 
         private async Task<T> GetPackageMetadataResource<T>(SourceRepository nuGetRepository) where T : class, INuGetResource
@@ -130,33 +128,36 @@ namespace NugetPackageDownloader.Resources.Metadata
             SourceRepository sourceRepository,
             CancellationToken cancellationToken)
         {
-            IPackageSearchMetadata packageSearchMetadata;
+            IPackageSearchMetadata packageSearchMetadata = null;
 
-            var packageMetadataResource = await GetPackageMetadataResource<PackageMetadataResource>(sourceRepository);
-
-            if (NuGetVersion.TryParse(version, out var nugetVersion))
+            if (!_packageIdentities.Any(x => x.Name == name && x.Version.ToString() == version))
             {
-                var packageIdentity = new NuGetCore.PackageIdentity(name, nugetVersion);
+                var packageMetadataResource = await GetPackageMetadataResource<PackageMetadataResource>(sourceRepository);
 
-                var packageMetadata = await packageMetadataResource.GetMetadataAsync(
-                    packageIdentity, nuGetManager.NuGetSourceCacheContext, _logger, cancellationToken);
+                if (NuGetVersion.TryParse(version, out var nugetVersion))
+                {
+                    var packageIdentity = new NuGetCore.PackageIdentity(name, nugetVersion);
 
-                if (packageMetadata == null)
-                    _logger.LogInformation($"Package {name}.{version} not found");
+                    var packageMetadata = await packageMetadataResource.GetMetadataAsync(
+                        packageIdentity, nuGetManager.NuGetSourceCacheContext, _logger, cancellationToken);
 
-                packageSearchMetadata = packageMetadata;
-            }
-            else
-            {
-                var packageMetadatas = await packageMetadataResource.GetMetadataAsync(
-                    name, true, true, nuGetManager.NuGetSourceCacheContext, _logger, cancellationToken);
+                    if (packageMetadata == null)
+                        _logger?.LogInformation($"Package {name}.{version} not found");
 
-                if (packageMetadatas.Any())
-                    _logger.LogInformation($"Package {name} not found");
+                    packageSearchMetadata = packageMetadata;
+                }
+                else
+                {
+                    var packageMetadatas = await packageMetadataResource.GetMetadataAsync(
+                        name, true, true, nuGetManager.NuGetSourceCacheContext, _logger, cancellationToken);
 
-                packageSearchMetadata = packageMetadatas
-                    .OrderByDescending(x => x.Identity.Version)
-                    .FirstOrDefault();
+                    if (packageMetadatas.Any())
+                        _logger?.LogInformation($"Package {name} not found");
+
+                    packageSearchMetadata = packageMetadatas
+                        .OrderByDescending(x => x.Identity.Version)
+                        .FirstOrDefault();
+                }
             }
 
             return packageSearchMetadata;
