@@ -12,27 +12,31 @@ using NuGet.Packaging.Signing;
 using NuGet.ProjectManagement;
 using NuGet.Protocol.Core.Types;
 using NuGet.Resolver;
-using NugetPackageDownloader.Helpers;
+using NugetPackageDownloader.Constants;
 using NugetPackageDownloader.Resources.NuGet;
 using NuGetCore = NuGet.Packaging.Core;
 
 namespace NugetPackageDownloader.Resources
 {
-    public class NuGetManager
+    internal class NuGetManager
     {
         // Read from source nuget.config
-        private const string nuGetFolder = "nuget";
         private const string packageSourcesSection = "packageSources";
         private const string disallowedPackageSourcesSection = "disabledPackageSources";
 
-        public NuGetManager(ILogger logger,
+        internal NuGetManager(
             TargetFramework targetFramework = TargetFramework.NETSTANDARD2_0,
+            bool isDownloadAndExtract = default,
+            string outputPath = default,
             bool includePrerelease = default,
-            IEnumerable<string> nuGetFeeds = default)
+            IEnumerable<string> nuGetFeeds = default,
+            ILogger logger = default)
         {
             Logger = logger;
 
             IncludePrerelease = includePrerelease;
+
+            IsDownloadAndExtract = isDownloadAndExtract;
 
             NuGetFramework = targetFramework.ToNuGetFramework();
 
@@ -48,13 +52,14 @@ namespace NugetPackageDownloader.Resources
             // Add API support for v3, include v2 support if needed
             NuGetResourceProviders.AddRange(Repository.Provider.GetCoreV3());
 
-            NuGetPath = $"{AppDomain.CurrentDomain.BaseDirectory}{nuGetFolder}";
+            // NuGet config settings
+            NuGetSettings = NuGetSettings ?? Settings.LoadDefaultSettings(null, null, new MachineWideSettings());
+
+            // Set NuGet global path
+            NuGetPath = outputPath ?? SettingsUtility.GetGlobalPackagesFolder(NuGetSettings);
 
             // Set NuGet project
             NuGetProject = NuGetProject ?? new FolderNuGetProject(NuGetPath);
-
-            // NuGet config settings
-            NuGetSettings = NuGetSettings ?? Settings.LoadDefaultSettings(NuGetPath, null, new MachineWideSettings());
 
             // Initialize NuGetPackageManager
             NuGetPackageManager = NuGetPackageManager ?? InitializeNuGetPackageManager();
@@ -65,7 +70,7 @@ namespace NugetPackageDownloader.Resources
             // Initialize package resolution context
             NuGetResolutionContext = NuGetResolutionContext ?? new ResolutionContext(
                 DependencyBehavior.Lowest,
-                includePrerelease,
+                IncludePrerelease,
                 false,
                 VersionConstraints.None,
                 new GatherCache(),
@@ -82,37 +87,39 @@ namespace NugetPackageDownloader.Resources
                 NuGetResolutionContext.SourceCacheContext.DirectDownload);
 
             // Initialize package project context
-            NuGetProjectContext = NuGetProjectContext ?? new ProjectContext(logger)
+            NuGetProjectContext = NuGetProjectContext ?? new ProjectContext(Logger)
             {
-                PackageExtractionContext = new PackageExtractionContext(PackageSaveMode.Defaultv2, XmlDocFileSaveMode.None, ClientPolicyContext.GetClientPolicy(NuGetSettings, logger), logger)
+                PackageExtractionContext = new PackageExtractionContext(PackageSaveMode.Defaultv2, XmlDocFileSaveMode.None, ClientPolicyContext.GetClientPolicy(NuGetSettings, Logger), Logger)
             };
         }
 
-        public List<Lazy<INuGetResourceProvider>> NuGetResourceProviders { get; }
+        internal List<Lazy<INuGetResourceProvider>> NuGetResourceProviders { get; }
 
-        public SourceCacheContext NuGetSourceCacheContext { get; }
+        internal SourceCacheContext NuGetSourceCacheContext { get; }
 
-        public ISettings NuGetSettings { get; }
+        internal ISettings NuGetSettings { get; }
 
-        public NuGetPackageManager NuGetPackageManager { get; }
+        internal NuGetPackageManager NuGetPackageManager { get; }
 
-        public ResolutionContext NuGetResolutionContext { get; }
+        internal ResolutionContext NuGetResolutionContext { get; }
 
-        public PackageDownloadContext NuGetDownloadContext { get; }
+        internal PackageDownloadContext NuGetDownloadContext { get; }
 
-        public ProjectContext NuGetProjectContext { get; }
+        internal ProjectContext NuGetProjectContext { get; }
 
-        public NuGetProject NuGetProject { get; }
+        internal NuGetProject NuGetProject { get; }
 
-        public IEnumerable<SourceRepository> NuGetSourceRepositories { get; }
+        internal IEnumerable<SourceRepository> NuGetSourceRepositories { get; }
 
-        public string NuGetPath { get; }
+        internal string NuGetPath { get; }
 
-        public ILogger Logger { get; }
+        internal ILogger Logger { get; }
 
-        public bool IncludePrerelease { get; }
+        internal bool IncludePrerelease { get; }
 
-        public NuGetFramework NuGetFramework { get; }
+        internal NuGetFramework NuGetFramework { get; }
+
+        internal bool IsDownloadAndExtract { get; }
 
         /// <summary>
         /// Download NuGet packages based on Package Identity
@@ -120,7 +127,7 @@ namespace NugetPackageDownloader.Resources
         /// <param name="packageIdentity"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async Task DownloadPackages(
+        internal async Task DownloadPackages(
             NuGetCore.PackageIdentity packageIdentity,
             CancellationToken cancellationToken = default)
         {
@@ -193,7 +200,7 @@ namespace NugetPackageDownloader.Resources
             }
             catch (Exception)
             {
-                Logger.LogWarning($"Not able to access NuGet source {sourceRepository.PackageSource.Name}");
+                Logger?.LogWarning($"Not able to access NuGet source {sourceRepository.PackageSource.Name}");
                 return false;
             }
         }

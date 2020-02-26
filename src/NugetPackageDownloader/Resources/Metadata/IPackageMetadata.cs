@@ -6,7 +6,7 @@ using NuGet.Protocol.Core.Types;
 
 namespace NugetPackageDownloader.Resources.Metadata
 {
-    public interface IPackageMetadata
+    internal interface IPackageMetadata
     {
         Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadata(
             string packageName,

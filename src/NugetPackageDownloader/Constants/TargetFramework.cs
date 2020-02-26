@@ -2,7 +2,7 @@
 
 using NuGet.Frameworks;
 
-namespace NugetPackageDownloader.Helpers
+namespace NugetPackageDownloader.Constants
 {
     public enum TargetFramework
     {
