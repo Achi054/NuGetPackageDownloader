@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,10 +18,9 @@ using NuGetCore = NuGet.Packaging.Core;
 
 namespace NugetPackageDownloader.Resources
 {
-    internal class NuGetManager : IDisposable
+    internal class NuGetManager
     {
         // Read from source nuget.config
-        private const string nuGetFolder = "nuget";
         private const string packageSourcesSection = "packageSources";
         private const string disallowedPackageSourcesSection = "disabledPackageSources";
 
@@ -54,13 +52,14 @@ namespace NugetPackageDownloader.Resources
             // Add API support for v3, include v2 support if needed
             NuGetResourceProviders.AddRange(Repository.Provider.GetCoreV3());
 
-            NuGetPath = outputPath ?? $"{AppDomain.CurrentDomain.BaseDirectory}{nuGetFolder}";
+            // NuGet config settings
+            NuGetSettings = NuGetSettings ?? Settings.LoadDefaultSettings(null, null, new MachineWideSettings());
+
+            // Set NuGet global path
+            NuGetPath = outputPath ?? SettingsUtility.GetGlobalPackagesFolder(NuGetSettings);
 
             // Set NuGet project
             NuGetProject = NuGetProject ?? new FolderNuGetProject(NuGetPath);
-
-            // NuGet config settings
-            NuGetSettings = NuGetSettings ?? Settings.LoadDefaultSettings(NuGetPath, null, new MachineWideSettings());
 
             // Initialize NuGetPackageManager
             NuGetPackageManager = NuGetPackageManager ?? InitializeNuGetPackageManager();
@@ -71,15 +70,15 @@ namespace NugetPackageDownloader.Resources
             // Initialize package resolution context
             NuGetResolutionContext = NuGetResolutionContext ?? new ResolutionContext(
                 DependencyBehavior.Lowest,
-                includePrerelease,
-                        false,
+                IncludePrerelease,
+                false,
                 VersionConstraints.None,
-                        new GatherCache(),
-                        new SourceCacheContext
-                        {
-                            NoCache = true,
-                            DirectDownload = true
-                        });
+                new GatherCache(),
+                new SourceCacheContext
+                {
+                    NoCache = true,
+                    DirectDownload = true
+                });
 
             // Initialize package download context
             NuGetDownloadContext = NuGetDownloadContext ?? new PackageDownloadContext(
@@ -204,12 +203,6 @@ namespace NugetPackageDownloader.Resources
                 Logger?.LogWarning($"Not able to access NuGet source {sourceRepository.PackageSource.Name}");
                 return false;
             }
-        }
-
-        public void Dispose()
-        {
-            if (Directory.Exists(NuGetPath) && IsDownloadAndExtract)
-                Directory.Delete(NuGetPath, true);
         }
     }
 }

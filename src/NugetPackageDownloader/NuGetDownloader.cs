@@ -100,7 +100,7 @@ namespace NugetPackageDownloader
 
             try
             {
-                using var nuGetManager = new NuGetManager(targetFramework, true, null, IncludePrerelease, NuGetSourceRepositories, _logger);
+                var nuGetManager = new NuGetManager(targetFramework, true, null, IncludePrerelease, NuGetSourceRepositories, _logger);
 
                 var packageIdentities = await _packageMetadata.GetPackageIdentities
                     (packageName, Version, nuGetManager, cancellationToken);
@@ -136,7 +136,7 @@ namespace NugetPackageDownloader
 
             try
             {
-                using var nuGetManager = new NuGetManager(targetFramework, false, null, IncludePrerelease, NuGetSourceRepositories, _logger);
+                var nuGetManager = new NuGetManager(targetFramework, false, null, IncludePrerelease, NuGetSourceRepositories, _logger);
 
                 packageMetadata = await _packageMetadata.GetPackageSearchMetadata(packageName, nuGetManager, cancellationToken);
             }
@@ -160,7 +160,7 @@ namespace NugetPackageDownloader
 
             try
             {
-                using var nuGetManager = new NuGetManager(targetFramework, false, outputPath, IncludePrerelease, NuGetSourceRepositories, _logger);
+                var nuGetManager = new NuGetManager(targetFramework, false, outputPath, IncludePrerelease, NuGetSourceRepositories, _logger);
 
                 var packageIdentities = await _packageMetadata.GetPackageIdentities(
                     packageName, Version, nuGetManager, cancellationToken);

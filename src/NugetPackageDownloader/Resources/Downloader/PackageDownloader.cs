@@ -96,7 +96,7 @@ namespace NugetPackageDownloader.Resources.Downloader
             }
         }
 
-        private async Task CopyNuGetAssemblies(
+        private Task CopyNuGetAssemblies(
             string outputPath,
             NuGetManager nuGetManager,
             NuGetCore.PackageIdentity packageIdentity,
@@ -134,6 +134,8 @@ namespace NugetPackageDownloader.Resources.Downloader
                     }
                 }
             }
+
+            return Task.CompletedTask;
         }
 
         private FrameworkSpecificGroup GetMostCompatibleGroup(
