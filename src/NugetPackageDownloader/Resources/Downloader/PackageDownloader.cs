@@ -19,7 +19,7 @@ namespace NugetPackageDownloader.Resources.Downloader
 
         internal PackageDownloader(ILogger logger = default) => _logger = logger;
 
-        public Task DownloadPackages(
+        public Task DownloadPackagesAsync(
             IEnumerable<PackageIdentity> packageIdentities,
             NuGetManager nuGetManager,
             CancellationToken cancellationToken = default)
@@ -63,7 +63,7 @@ namespace NugetPackageDownloader.Resources.Downloader
             return Task.CompletedTask;
         }
 
-        public async Task ExtractPackageAssemblies(
+        public async Task ExtractPackageAssembliesAsync(
             string outputPath,
             IEnumerable<PackageIdentity> packageIdentities,
             NuGetManager nuGetManager,
@@ -77,14 +77,14 @@ namespace NugetPackageDownloader.Resources.Downloader
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        await CopyNuGetAssemblies(outputPath, nuGetManager, packageIdentity.Identity, cancellationToken);
+                        await CopyNuGetAssembliesAsync(outputPath, nuGetManager, packageIdentity.Identity, cancellationToken);
 
                         var copyTasks = new List<Task>();
 
                         packageIdentity.DependentPackageIdentities.ToList()
                             .ForEach(dependentPackageIdentity =>
                             {
-                                copyTasks.Add(CopyNuGetAssemblies(outputPath, nuGetManager, dependentPackageIdentity, cancellationToken));
+                                copyTasks.Add(CopyNuGetAssembliesAsync(outputPath, nuGetManager, dependentPackageIdentity, cancellationToken));
                             });
 
                         Task.WaitAll(copyTasks.ToArray());
@@ -100,7 +100,7 @@ namespace NugetPackageDownloader.Resources.Downloader
             }
         }
 
-        private Task CopyNuGetAssemblies(
+        private Task CopyNuGetAssembliesAsync(
             string outputPath,
             NuGetManager nuGetManager,
             NuGetCore.PackageIdentity packageIdentity,

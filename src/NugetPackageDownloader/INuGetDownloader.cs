@@ -17,7 +17,7 @@ namespace NugetPackageDownloader
         /// <param name="targetFramework"></param>
         /// <param name="downloaderOptions"></param>
         /// <returns></returns>
-        Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadata(
+        Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadataAsync(
             string packageName,
             TargetFramework targetFramework,
             Action<NuGetDownloader> downloaderOptions = default);
@@ -30,7 +30,7 @@ namespace NugetPackageDownloader
         /// <param name="outputPath"></param>
         /// <param name="downloaderOptions"></param>
         /// <returns></returns>
-        Task DownloadPackage(
+        Task DownloadPackageAsync(
             string packageName,
             TargetFramework targetFramework,
             string outputPath,
@@ -44,7 +44,7 @@ namespace NugetPackageDownloader
         /// <param name="outputPath"></param>
         /// <param name="downloaderOptions"></param>
         /// <returns></returns>
-        Task DownloadAndExtractPackage(
+        Task DownloadAndExtractPackageAsync(
             string packageName,
             TargetFramework targetFramework,
             string outputPath,

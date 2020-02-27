@@ -6,12 +6,12 @@ namespace NugetPackageDownloader.Resources.Downloader
 {
     internal interface IPackageDownloader
     {
-        Task DownloadPackages(
+        Task DownloadPackagesAsync(
             IEnumerable<PackageIdentity> packageIdentities,
             NuGetManager nuGetManager,
             CancellationToken cancellationToken = default);
 
-        Task ExtractPackageAssemblies(
+        Task ExtractPackageAssembliesAsync(
             string outputPath,
             IEnumerable<PackageIdentity> packageIdentities,
             NuGetManager nuGetManager,

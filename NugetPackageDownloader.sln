@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NugetPackageDownloader", "s
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NuGetPackageDownloadTester", "test\NuGetPackageDownloadTester\NuGetPackageDownloadTester.csproj", "{AA82A79B-6A6F-4499-B74A-DB944CFC9CE7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuGetDownloader", "src\NuGetDownloader\NuGetDownloader.csproj", "{78B4AB74-EB74-4D79-A838-B9A7D0C08DD9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -25,6 +27,10 @@ Global
 		{AA82A79B-6A6F-4499-B74A-DB944CFC9CE7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AA82A79B-6A6F-4499-B74A-DB944CFC9CE7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AA82A79B-6A6F-4499-B74A-DB944CFC9CE7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{78B4AB74-EB74-4D79-A838-B9A7D0C08DD9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78B4AB74-EB74-4D79-A838-B9A7D0C08DD9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78B4AB74-EB74-4D79-A838-B9A7D0C08DD9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78B4AB74-EB74-4D79-A838-B9A7D0C08DD9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -32,6 +38,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{08F9D965-F936-41B1-A76E-74625406D555} = {F6875D3F-FE6E-4B65-8EAA-5051AC09C81C}
 		{AA82A79B-6A6F-4499-B74A-DB944CFC9CE7} = {D2FF32D7-0771-4F86-9AC2-47A3F7BF6F3F}
+		{78B4AB74-EB74-4D79-A838-B9A7D0C08DD9} = {F6875D3F-FE6E-4B65-8EAA-5051AC09C81C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {EA12AB26-1767-4A5F-A1BF-EB41887E22A9}

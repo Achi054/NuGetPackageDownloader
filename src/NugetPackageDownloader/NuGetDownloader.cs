@@ -40,14 +40,14 @@ namespace NugetPackageDownloader
         /// <param name="targetFramework"></param>
         /// <param name="downloaderOptions"></param>
         /// <returns></returns>
-        public async Task DownloadPackage(
+        public async Task DownloadPackageAsync(
             string packageName,
             TargetFramework targetFramework,
             string outputPath,
             Action<NuGetDownloader> downloaderOptions = default)
         {
             downloaderOptions?.Invoke(this);
-            await DownloadPackage(packageName, targetFramework, outputPath, CancellationToken);
+            await DownloadPackageAsync(packageName, targetFramework, outputPath, CancellationToken);
         }
 
         /// <summary>
@@ -57,7 +57,7 @@ namespace NugetPackageDownloader
         /// <param name="targetFramework"></param>
         /// <param name="downloaderOptions"></param>
         /// <returns></returns>
-        public async Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadata(
+        public async Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadataAsync(
             string packageName,
             TargetFramework targetFramework,
             Action<NuGetDownloader> downloaderOptions = default)
@@ -70,7 +70,7 @@ namespace NugetPackageDownloader
 
             downloaderOptions?.Invoke(this);
 
-            return await GetPackageSearchMetadata(packageName, targetFramework, CancellationToken);
+            return await GetPackageSearchMetadataAsync(packageName, targetFramework, CancellationToken);
         }
 
         /// <summary>
@@ -80,17 +80,17 @@ namespace NugetPackageDownloader
         /// <param name="targetFramework"></param>
         /// <param name="downloaderOptions"></param>
         /// <returns></returns>
-        public async Task DownloadAndExtractPackage(
+        public async Task DownloadAndExtractPackageAsync(
             string packageName,
             TargetFramework targetFramework,
             string outputPath,
             Action<NuGetDownloader> downloaderOptions = null)
         {
             downloaderOptions?.Invoke(this);
-            await DownloadAndExtractPackage(packageName, targetFramework, outputPath, CancellationToken);
+            await DownloadAndExtractPackageAsync(packageName, targetFramework, outputPath, CancellationToken);
         }
 
-        private async Task DownloadAndExtractPackage(
+        private async Task DownloadAndExtractPackageAsync(
             string packageName,
             TargetFramework targetFramework,
             string outputPath,
@@ -102,13 +102,13 @@ namespace NugetPackageDownloader
             {
                 var nuGetManager = new NuGetManager(targetFramework, true, null, IncludePrerelease, NuGetSourceRepositories, _logger);
 
-                var packageIdentities = await _packageMetadata.GetPackageIdentities
+                var packageIdentities = await _packageMetadata.GetPackageIdentitiesAsync
                     (packageName, Version, nuGetManager, cancellationToken);
 
-                await _packageDownloader.DownloadPackages
+                await _packageDownloader.DownloadPackagesAsync
                     (packageIdentities, nuGetManager, cancellationToken);
 
-                await _packageDownloader.ExtractPackageAssemblies
+                await _packageDownloader.ExtractPackageAssembliesAsync
                     (outputPath, packageIdentities, nuGetManager, cancellationToken);
             }
             catch (Exception)
@@ -119,7 +119,7 @@ namespace NugetPackageDownloader
             _logger?.LogInformation($"Download and extraction of package {packageName}.{Version} completed");
         }
 
-        private async Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadata(
+        private async Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadataAsync(
             string packageName,
             TargetFramework targetFramework,
             CancellationToken cancellationToken = default)
@@ -138,7 +138,7 @@ namespace NugetPackageDownloader
             {
                 var nuGetManager = new NuGetManager(targetFramework, false, null, IncludePrerelease, NuGetSourceRepositories, _logger);
 
-                packageMetadata = await _packageMetadata.GetPackageSearchMetadata(packageName, nuGetManager, cancellationToken);
+                packageMetadata = await _packageMetadata.GetPackageSearchMetadataAsync(packageName, nuGetManager, cancellationToken);
             }
             catch (Exception)
             {
@@ -150,7 +150,7 @@ namespace NugetPackageDownloader
             return packageMetadata;
         }
 
-        private async Task DownloadPackage(
+        private async Task DownloadPackageAsync(
             string packageName,
             TargetFramework targetFramework,
             string outputPath,
@@ -162,10 +162,10 @@ namespace NugetPackageDownloader
             {
                 var nuGetManager = new NuGetManager(targetFramework, false, outputPath, IncludePrerelease, NuGetSourceRepositories, _logger);
 
-                var packageIdentities = await _packageMetadata.GetPackageIdentities(
+                var packageIdentities = await _packageMetadata.GetPackageIdentitiesAsync(
                     packageName, Version, nuGetManager, cancellationToken);
 
-                await _packageDownloader.DownloadPackages(packageIdentities, nuGetManager, cancellationToken);
+                await _packageDownloader.DownloadPackagesAsync(packageIdentities, nuGetManager, cancellationToken);
             }
             catch (Exception)
             {

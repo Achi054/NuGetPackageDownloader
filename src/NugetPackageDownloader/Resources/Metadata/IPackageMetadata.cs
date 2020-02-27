@@ -8,12 +8,12 @@ namespace NugetPackageDownloader.Resources.Metadata
 {
     internal interface IPackageMetadata
     {
-        Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadata(
+        Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadataAsync(
             string packageName,
             NuGetManager nuGetManager,
             CancellationToken cancellationToken = default);
 
-        Task<IEnumerable<PackageIdentity>> GetPackageIdentities(
+        Task<IEnumerable<PackageIdentity>> GetPackageIdentitiesAsync(
             string name,
             string version,
             NuGetManager nuGetManager,

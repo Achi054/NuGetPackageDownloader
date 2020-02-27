@@ -20,7 +20,7 @@ namespace NugetPackageDownloader.Resources.Metadata
 
         public PackageMetadata(ILogger logger = default) => (_logger, _packageIdentities) = (logger, new HashSet<PackageIdentity>());
 
-        public async Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadata(
+        public async Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadataAsync(
             string packageName,
             NuGetManager nuGetManager,
             CancellationToken cancellationToken = default)
@@ -33,7 +33,7 @@ namespace NugetPackageDownloader.Resources.Metadata
             {
                 try
                 {
-                    var packageSearchResource = await GetPackageMetadataResource<PackageSearchResource>(nuGetRepository);
+                    var packageSearchResource = await GetPackageMetadataResourceAsync<PackageSearchResource>(nuGetRepository);
 
                     var searchFilter = new SearchFilter(nuGetManager.IncludePrerelease, SearchFilterType.IsLatestVersion)
                     {
@@ -54,7 +54,7 @@ namespace NugetPackageDownloader.Resources.Metadata
             return packageSearchMetadatas;
         }
 
-        public async Task<IEnumerable<PackageIdentity>> GetPackageIdentities(
+        public async Task<IEnumerable<PackageIdentity>> GetPackageIdentitiesAsync(
             string name,
             string version,
             NuGetManager nuGetManager,
@@ -66,7 +66,7 @@ namespace NugetPackageDownloader.Resources.Metadata
             {
                 try
                 {
-                    var packageMetadata = await GetPackageIdentity(name, version,
+                    var packageMetadata = await GetPackageIdentityAsync(name, version,
                         nuGetManager, nuGetSourceRepository, cancellationToken);
 
                     if (packageMetadata != null)
@@ -80,7 +80,7 @@ namespace NugetPackageDownloader.Resources.Metadata
 
                             foreach (var dependentPackageIdentity in packageMetadata.DependentPackageIdentities)
                             {
-                                _packageIdentities.AddRange(await GetPackageIdentities(
+                                _packageIdentities.AddRange(await GetPackageIdentitiesAsync(
                                         dependentPackageIdentity.Id,
                                         dependentPackageIdentity.Version.ToString(),
                                         nuGetManager,
@@ -99,10 +99,10 @@ namespace NugetPackageDownloader.Resources.Metadata
             return _packageIdentities;
         }
 
-        private async Task<T> GetPackageMetadataResource<T>(SourceRepository nuGetRepository) where T : class, INuGetResource
+        private async Task<T> GetPackageMetadataResourceAsync<T>(SourceRepository nuGetRepository) where T : class, INuGetResource
             => await nuGetRepository.GetResourceAsync<T>();
 
-        private async Task<PackageIdentity> GetPackageIdentity(
+        private async Task<PackageIdentity> GetPackageIdentityAsync(
             string name,
             string version,
             NuGetManager nuGetManager,
@@ -111,7 +111,7 @@ namespace NugetPackageDownloader.Resources.Metadata
         {
             PackageIdentity nuGetPackageIdentity = null;
 
-            var packageSearchMetadata = await GetPackageMetadata(name, version, nuGetManager, sourceRepository, cancellationToken);
+            var packageSearchMetadata = await GetPackageMetadataAsync(name, version, nuGetManager, sourceRepository, cancellationToken);
 
             if (packageSearchMetadata != null)
             {
@@ -121,7 +121,7 @@ namespace NugetPackageDownloader.Resources.Metadata
             return nuGetPackageIdentity;
         }
 
-        private async Task<IPackageSearchMetadata> GetPackageMetadata(
+        private async Task<IPackageSearchMetadata> GetPackageMetadataAsync(
             string name,
             string version,
             NuGetManager nuGetManager,
@@ -132,7 +132,7 @@ namespace NugetPackageDownloader.Resources.Metadata
 
             if (!_packageIdentities.Any(x => x.Name == name && x.Version.ToString() == version))
             {
-                var packageMetadataResource = await GetPackageMetadataResource<PackageMetadataResource>(sourceRepository);
+                var packageMetadataResource = await GetPackageMetadataResourceAsync<PackageMetadataResource>(sourceRepository);
 
                 if (NuGetVersion.TryParse(version, out var nugetVersion))
                 {

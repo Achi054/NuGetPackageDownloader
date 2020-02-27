@@ -13,7 +13,7 @@ namespace NuGetDownloadTester
             //const string VERSION = "2.9.1-dev-01154";
             const string PATH = @"C:\TigerBox\POC\NugetPackageDownloader\bin";
 
-            await new NuGetDownloader().DownloadAndExtractPackage(
+            await new NuGetDownloader().DownloadAndExtractPackageAsync(
                 NUGET_PACKAGE_NAME,
                 TargetFramework.NETSTANDARD2_1,
                 PATH,

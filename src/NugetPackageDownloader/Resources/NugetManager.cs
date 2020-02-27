@@ -168,13 +168,13 @@ namespace NugetPackageDownloader.Resources
             }
             else
             {
-                var disallowedPackageSources = NuGetSettings.GetSection(disallowedPackageSourcesSection).Items.Select(x => (AddItem)x);
+                var disallowedPackageSources = NuGetSettings.GetSection(disallowedPackageSourcesSection)?.Items.Select(x => (AddItem)x);
 
                 foreach (SourceItem section in NuGetSettings.GetSection(packageSourcesSection).Items)
                 {
                     if (Uri.TryCreate(section.Value, UriKind.Absolute, out Uri uri)
                         && !uri.IsFile
-                        && !disallowedPackageSources.Any(x => x.Key == section.Key))
+                        && (disallowedPackageSources != null && !disallowedPackageSources.Any(x => x.Key == section.Key)))
                         sourceRepositories.Add(GetSourceRepository(uri));
                 }
             }
