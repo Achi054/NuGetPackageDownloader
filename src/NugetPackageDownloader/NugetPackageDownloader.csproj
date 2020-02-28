@@ -6,13 +6,14 @@
     <Nullable>disable</Nullable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Sujith Acharya</Authors>
-    <Product>Nuget Package Downloader</Product>
-    <Description>NuGet package to download and extract NuGet package from NuGet feeds</Description>
+    <Product>NuGet Package Downloader</Product>
+    <Description>NuGet downloader to download or extract NuGet package(s) and its dependent packages from NuGet feeds</Description>
     <PackageProjectUrl></PackageProjectUrl>
     <RepositoryUrl>https://github.com/Achi054/NuGetPackageDownloader</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
     <PackageIcon>NuGetDownloader.png</PackageIcon>
     <PackageIconUrl />
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
   <ItemGroup>

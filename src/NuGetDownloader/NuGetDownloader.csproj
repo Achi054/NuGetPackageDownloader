@@ -11,8 +11,4 @@
     <PackageOutputPath>./nupkg</PackageOutputPath>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\NugetPackageDownloader\NugetPackageDownloader.csproj" />
-  </ItemGroup>
-
 </Project>
