@@ -15,7 +15,6 @@ branches:
 skip_tags: true
 cache:
   - packages -> **\packages.config
-platform: Any CPU
 configuration: Release
 test:
   assemblies:
