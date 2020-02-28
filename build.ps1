@@ -7,7 +7,7 @@ Param(
 )
 
 # Create tool manifest
-& dotnet new tool-manifest
+& dotnet new tool-manifest --force
 # Install Cake.Tool locally
 & dotnet tool install Cake.Tool
 # Restore Cake tool

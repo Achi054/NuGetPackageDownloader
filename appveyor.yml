@@ -21,11 +21,14 @@ test:
   assemblies:
     - '**\*Tests.dll'
 build_script:
-  - ps: ./build.ps1 --target=CI
+  - ps: ./build.ps1 --target=CICD
 install:
   - ps: Set-Service wuauserv -StartupType Manual
   - cinst -y php
   - choco install dotnetcore-sdk
+artifacts:
+  - path: .\artifacts\**\*.nupkg
+    name: NuGet
 deploy:
   - provider: NuGet
     name: production
@@ -33,6 +36,3 @@ deploy:
       secure: 5MSrZkoZgLIbpTNzQUZL6ZzKC9XkgNt6NZqt6q2M7ZQ=
     on:
       branch: master
-    skip_symbols: false
-    symbol_server:
-    artifact: /.*\.nupkg/

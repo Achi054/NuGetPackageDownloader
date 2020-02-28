@@ -42,7 +42,7 @@ Task("Build")
         var settings = new DotNetCoreBuildSettings
         {
             Configuration = configuration,
-            OutputDirectory = "./artifacts/"
+            OutputDirectory = artifactPath + "/"
         };
         DotNetCoreBuild(solution);
         Information("Build Complete");
@@ -54,7 +54,7 @@ Task("Test")
         var settings = new DotNetCoreTestSettings
         {
             Configuration = configuration,
-            OutputDirectory = "./artifacts/Tests"
+            OutputDirectory = artifactPath + "/Tests"
         };
         var projectFiles = GetFiles(testProjects);
         foreach(var file in projectFiles)
@@ -94,6 +94,12 @@ Task("CI")
     .IsDependentOn("Test")
     .Does(() => {
         Information("Continuous Integration Complete");
+    });
+
+Task("CICD")
+    .IsDependentOn("Package")
+    .Does(() => {
+        Information("Continuous Integration and Continuous Delivery Complete");
     });
 
 RunTarget(target);
