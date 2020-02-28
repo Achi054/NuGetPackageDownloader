@@ -21,7 +21,7 @@ test:
   assemblies:
     - '**\*Tests.dll'
 build_script:
-  - ps: ./build.ps1 --target=CICD
+  - ps: ./build.ps1 --target=CI
 install:
   - ps: Set-Service wuauserv -StartupType Manual
   - cinst -y php
