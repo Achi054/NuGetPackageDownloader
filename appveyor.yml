@@ -25,3 +25,10 @@ install:
   - ps: Set-Service wuauserv -StartupType Manual
   - cinst -y php
   - choco install dotnetcore-sdk
+deploy:
+  provider: NuGet
+  api_key:
+    secure: oy2obywhyj6rkcnpo6rqaaia65vzsiiuhkzger6ant47hu
+  skip_symbols: false
+  symbol_server:
+  artifact: /.*\.nupkg/
