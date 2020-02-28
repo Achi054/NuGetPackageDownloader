@@ -9,7 +9,7 @@ var publishProjects = new [] {
     "./src/NugetPackageDownloader/NugetPackageDownloader.csproj"
 };
 var packageProjects = new [] { 
-    "./src/NugetPackageDownloader/NugetPackageDownloader.csproj" 
+    "./src/NugetPackageDownloader/NugetPackageDownloader.csproj"
 };
 var directoriesToClean = new [] {
     artifactPath
@@ -42,9 +42,8 @@ Task("Build")
         var settings = new DotNetCoreBuildSettings
         {
             Configuration = configuration,
-            OutputDirectory = artifactPath + "/"
         };
-        DotNetCoreBuild(solution);
+        DotNetCoreBuild(solution, settings);
         Information("Build Complete");
     });
 
@@ -59,7 +58,7 @@ Task("Test")
         var projectFiles = GetFiles(testProjects);
         foreach(var file in projectFiles)
         {
-            DotNetCoreTest(file.FullPath);
+            DotNetCoreTest(file.FullPath, settings);
         }
         Information("Test run Complete");
     });
