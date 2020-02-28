@@ -86,6 +86,7 @@ _DownloadAndExtractPackageAsync_, Async method to download and extract package a
 
 ## Detailed build status
 
-| Branch | Appveyor                                                                               |
-| ------ | -------------------------------------------------------------------------------------- |
-| master | ![Build status](https://ci.appveyor.com/api/projects/status/0f4u7344b392pfsv?svg=true) |
+| Branch | Appveyor                                                                                                                                                                             |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| dev    | [![Build status](https://ci.appveyor.com/api/projects/status/0f4u7344b392pfsv/branch/dev?svg=true)](https://ci.appveyor.com/project/Achi054/nugetpackagedownloader/branch/dev)       |
+| master | [![Build status](https://ci.appveyor.com/api/projects/status/0f4u7344b392pfsv/branch/master?svg=true)](https://ci.appveyor.com/project/Achi054/nugetpackagedownloader/branch/master) |
