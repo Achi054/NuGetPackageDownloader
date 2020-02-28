@@ -1,15 +1,15 @@
 var target = Argument("target", "Build");
 var configuration = Argument("configuration", "Release");
 
-var solution = "./NugetPackageDownloader.sln";
+var solution = "./NuGetPackageDownloader.sln";
 var testProjects = "./test/**/*.csproj";
 var artifactPath = "./artifacts";
 
 var publishProjects = new [] { 
-    "./src/NugetPackageDownloader/NugetPackageDownloader.csproj"
+    "./src/NuGetPackageDownloader/NuGetPackageDownloader.csproj"
 };
 var packageProjects = new [] { 
-    "./src/NugetPackageDownloader/NugetPackageDownloader.csproj"
+    "./src/NuGetPackageDownloader/NuGetPackageDownloader.csproj"
 };
 var directoriesToClean = new [] {
     artifactPath
