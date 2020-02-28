@@ -27,7 +27,7 @@ install:
   - cinst -y php
   - choco install dotnetcore-sdk
 artifacts:
-  - path: .\artifacts\**\*.nupkg
+  - path: .\.artifacts\**\*.nupkg
     name: NuGet
 deploy:
   - provider: NuGet
