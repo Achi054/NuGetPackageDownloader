@@ -11,6 +11,7 @@ clone_folder: c:\projects\NuGetDownloader
 branches:
   only:
     - master
+    - dev
 skip_tags: true
 cache:
   - packages -> **\packages.config
