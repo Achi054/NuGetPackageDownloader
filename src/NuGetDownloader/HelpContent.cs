@@ -1,63 +1,86 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using CommandLine;
+using CommandLine.Text;
 
 namespace NuGetDownloader
 {
-    internal static class HelpContent
+    internal class HelpContent
     {
-        public static void RenderCommandHelp(string command)
-        {
-            Console.WriteLine($"Usage:  DownloadNuGet {command} [options]");
-            Console.WriteLine();
-            Console.WriteLine("Options:");
-            Console.WriteLine("-h|--help   Display help");
-            Console.WriteLine("Command Options:");
-            Console.WriteLine("  -n|--name:                  Name of the package you want to download");
-            Console.WriteLine("  -f|--framework:             .Net target framework");
-            Console.WriteLine("  -op|--output-path:          NuGet output path to extract the package(s)");
-            Console.WriteLine("  -v|--version:               Search based on version of the package(s)");
-            Console.WriteLine("  -ipr|--include-prerelease:  Search even on Pre-Releases of the package(s), true/false");
-            Console.WriteLine();
-        }
+        static List<string> DownloadHelp = new[] {
+            "Usage:  DownloadNuGet download [options]",
+            Environment.NewLine,
+            "Options:",
+            "  help, --help                  Display help",
+            Environment.NewLine,
+            "Command Options:",
+            "  -n, --name:                 Name of the package you want to download",
+            "  -f, --framework:            .Net target framework",
+            "  -o, --output-path:          NuGet output path to extract the package(s)",
+            "  -v, --version:              Search based on version of the package(s)",
+            "  -p, --include-prerelease:   Search even on Pre-Releases of the package(s)"}.ToList();
 
-        public static void RenderInfo()
+        static List<string> ExtractHelp = new[] {
+            "Usage:  DownloadNuGet extract [options]",
+            Environment.NewLine,
+            "Options:",
+            "  help, --help                  Display help",
+            Environment.NewLine,
+            "Command Options:",
+            "  -n, --name:                 Name of the package you want to download",
+            "  -f, --framework:            .Net target framework",
+            "  -o, --output-path:          NuGet output path to extract the package(s)",
+            "  -v, --version:              Search based on version of the package(s)",
+            "  -p, --include-prerelease:   Search even on Pre-Releases of the package(s)" }.ToList();
+
+        static List<string> Help = new[] {
+            "  Usage:  DownloadNuGet [commands][options]",
+            "      Usage:  DownloadNuGet download [options]",
+            "      Usage:  DownloadNuGet extract [options]",
+            Environment.NewLine,
+            "  Options:",
+            "     help, --help    Display help",
+            Environment.NewLine,
+            "  Commands:",
+            "    download:   Downloads the NuGet package",
+            "    extract:    Extracts the NuGet package assemblies and dependent assemblies",
+            Environment.NewLine,
+            "  Command Options:",
+            "      -n, --name:                Name of the package you want to download",
+            "      -f, --framework:           .Net target framework",
+            "      -o, --output:              NuGet output path to extract the package(s)",
+            "      -v, --version:             Search based on version of the package(s)",
+            "      -p, --include-prerelease:  Search even on Pre-Releases of the package(s)",
+            }.ToList();
+
+        public static void DisplayHelp<T>(ParserResult<T> result, IEnumerable<Error> errs)
         {
             var versionString = Assembly.GetEntryAssembly()
-                                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-                                .InformationalVersion
-                                .ToString();
+                                   .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+                                   .InformationalVersion.ToString();
 
-            var summary = "DownloadNuGet is a cli tool to download and exrtact NuGet packages from nuget feed(s).\n" +
-                          "The tool caters two needs, download NuGet package and the dependent NuGet(s)\n" +
-                          "and extract NuGet package assemblies and dependent assemblies.";
+            var copyrightstring = Assembly.GetEntryAssembly()
+                                .GetCustomAttribute<AssemblyCopyrightAttribute>()
+                                .Copyright.ToString();
 
-            Console.WriteLine($"DownloadNuGet v{versionString}");
-            Console.WriteLine(summary);
-            Console.WriteLine();
-        }
+            HelpText helpText = HelpText.AutoBuild(result, h =>
+            {
+                h.Heading = $"NuGetDownloader v{versionString}";
+                h.Copyright = copyrightstring;
+                h.AutoHelp = h.AutoVersion = h.AdditionalNewLineAfterOption = false;
+                return HelpText.DefaultParsingErrorsHandler(result, h);
+            }, e => e);
 
-        public static void RenderHelp()
-        {
-            Console.WriteLine("Usage:  DownloadNuGet [commands][options]");
-            Console.WriteLine();
-            Console.WriteLine("Usage:  DownloadNuGet download [options]");
-            Console.WriteLine("Usage:  DownloadNuGet extract [options]");
-            Console.WriteLine();
-            Console.WriteLine("Options:");
-            Console.WriteLine("-h|--help    Display help");
-            Console.WriteLine("-i|--info    Display tool information");
-            Console.WriteLine();
-            Console.WriteLine("Commands:");
-            Console.WriteLine("  download:   Downloads the NuGet package");
-            Console.WriteLine("  extract:    Extracts the NuGet package assemblies and dependent assemblies");
-            Console.WriteLine();
-            Console.WriteLine("Command Options:");
-            Console.WriteLine("  -name:                 Name of the package you want to download");
-            Console.WriteLine("  -framework:            .Net target framework");
-            Console.WriteLine("  -output:               NuGet output path to extract the package(s)");
-            Console.WriteLine("  --version:             Search based on version of the package(s)");
-            Console.WriteLine("  --include-prerelease:  Search even on Pre-Releases of the package(s), true/false");
-            Console.WriteLine();
+            if (result is DownloadCommand)
+                helpText.AddPostOptionsLines(DownloadHelp);
+            else if (result is ExtractCommand)
+                helpText.AddPostOptionsLines(ExtractHelp);
+            else
+                helpText.AddPostOptionsLines(Help);
+
+            Console.WriteLine(helpText);
         }
     }
 }

@@ -1,50 +1,53 @@
 ﻿using System;
+using System.Threading.Tasks;
+using CommandLine;
+using NugetPackageDownloader.Constants;
 
 namespace NuGetDownloader
 {
-    class Program
+    public class Program
     {
-        static void Main(string[] args)
+        static Task Main(string[] args)
         {
-            Func<string, bool> IsValidCommandOption = arg =>
-            {
-                return (arg == PackageConstants.Commands.CommandOptions.Name
-                        || arg == PackageConstants.Commands.CommandOptions.Abrivatives.Name) ||
-                    (arg == PackageConstants.Commands.CommandOptions.Framework
-                        || arg == PackageConstants.Commands.CommandOptions.Abrivatives.Framework) ||
-                    (arg == PackageConstants.Commands.CommandOptions.OutputPath
-                        || arg == PackageConstants.Commands.CommandOptions.Abrivatives.OutputPath) ||
-                    (arg == PackageConstants.Commands.CommandOptions.Version
-                        || arg == PackageConstants.Commands.CommandOptions.Abrivatives.Version) ||
-                    (arg == PackageConstants.Commands.CommandOptions.IncludePrerelease
-                        || arg == PackageConstants.Commands.CommandOptions.Abrivatives.IncludePrerelease);
-            };
+            var nuGetPackageDownloader = new NugetPackageDownloader.NuGetDownloader();
 
-            if (args.Length == 0 || string.IsNullOrWhiteSpace(args[0]))
-                HelpContent.RenderHelp();
-            else if (args[0] == PackageConstants.Options.Abrivatives.Help || args[0] == PackageConstants.Options.Help)
-                HelpContent.RenderHelp();
-            else if (args[0] == PackageConstants.Options.Abrivatives.Info || args[0] == PackageConstants.Options.Info)
-                HelpContent.RenderInfo();
+            var parseResult = new Parser(with => with.HelpWriter = null)
+                .ParseArguments<DownloadCommand, ExtractCommand>(args);
 
-            if (args[0] == PackageConstants.Commands.Download)
-            {
-                if (args[1] == PackageConstants.Options.Abrivatives.Help || args[1] == PackageConstants.Options.Help)
-                    HelpContent.RenderCommandHelp(PackageConstants.Commands.Download);
-                else if (IsValidCommandOption(args[1]))
-                    Console.WriteLine(args[1]);
-                else
-                    HelpContent.RenderCommandHelp(PackageConstants.Commands.Download);
-            }
-            else if (args[0] == PackageConstants.Commands.Extract)
-            {
-                if (args[1] == PackageConstants.Options.Abrivatives.Help || args[1] == PackageConstants.Options.Help)
-                    HelpContent.RenderCommandHelp(PackageConstants.Commands.Extract);
-                else if (IsValidCommandOption(args[1]))
-                    Console.WriteLine(args[1]);
-                else
-                    HelpContent.RenderCommandHelp(PackageConstants.Commands.Extract);
-            }
+            parseResult
+                .WithParsed<DownloadCommand>(async opts =>
+                {
+                    if (Enum.TryParse<TargetFramework>(opts.Framework, true, out var framework))
+                    {
+                        await nuGetPackageDownloader.DownloadPackageAsync(
+                                opts.Name,
+                                framework,
+                                opts.OutputPath,
+                                downloaderOptions =>
+                                {
+                                    downloaderOptions.IncludePrerelease = opts.IncludePrerelease;
+                                    downloaderOptions.Version = opts.Version;
+                                });
+                    }
+                })
+                .WithParsed<ExtractCommand>(async opts =>
+                {
+                    if (Enum.TryParse<TargetFramework>(opts.Framework, true, out var framework))
+                    {
+                        await nuGetPackageDownloader.DownloadAndExtractPackageAsync(
+                                opts.Name,
+                                framework,
+                                opts.OutputPath,
+                                downloaderOptions =>
+                                {
+                                    downloaderOptions.IncludePrerelease = opts.IncludePrerelease;
+                                    downloaderOptions.Version = opts.Version;
+                                });
+                    }
+                })
+                .WithNotParsed(errs => HelpContent.DisplayHelp(parseResult, errs));
+
+            return Task.CompletedTask;
         }
     }
 }
