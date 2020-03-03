@@ -1,21 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFrameworks>netcoreapp3.0</TargetFrameworks>
     <LangVersion>8.0</LangVersion>
     <Nullable>disable</Nullable>
-
-    <PackAsTool>true</PackAsTool>
+    
     <ToolCommandName>DownloadNuGet</ToolCommandName>
     <PackageOutputPath>./nupkg</PackageOutputPath>
+    <PackAsTool>true</PackAsTool>
+    <OutputType>Exe</OutputType>
+    
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Description>NuGet Downloader is a .Net tool to download and/or extract NuGet package(s)</Description>
     <Copyright>Copyright (c) 2020</Copyright>
     <RepositoryUrl>https://github.com/Achi054/NuGetPackageDownloader</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
   </PropertyGroup>
-
+  
   <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.7.82" />
     <PackageReference Include="NuGetPackageDownloader" Version="1.0.38" />

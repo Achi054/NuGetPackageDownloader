@@ -37,8 +37,6 @@ namespace NuGetDownloader
     [Verb("extract", HelpText = "Download and Extract NuGet package and dependent assemblies")]
     internal class ExtractCommand : Options
     {
-        public Options Options { get; set; }
-
         [Usage(ApplicationAlias = "extract")]
         public static IEnumerable<Example> ExtractExamples
         {
