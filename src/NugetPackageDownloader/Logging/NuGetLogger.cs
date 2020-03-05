@@ -10,7 +10,7 @@ namespace NugetPackageDownloader.Logging
     {
         private readonly ILogger _logger;
 
-        public NuGetLogger(ILogger<NuGetDownloader> logger) => _logger = logger;
+        public NuGetLogger(ILogger logger) => _logger = logger;
 
         public void Log(NugetLogger.LogLevel level, string data)
         {
