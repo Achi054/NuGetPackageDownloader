@@ -19,9 +19,9 @@ namespace NugetPackageDownloader
         private readonly IPackageMetadata _packageMetadata;
         private readonly IPackageDownloader _packageDownloader;
 
-        public NuGetDownloader(NugetLogger.ILogger logger = default)
+        public NuGetDownloader(ILogger logger = default)
         {
-            _logger = logger ?? ComposeLogger();
+            _logger = logger != null ? new NuGetLogger(logger) : ComposeLogger();
             _packageMetadata = new PackageMetadata(_logger);
             _packageDownloader = new PackageDownloader(_logger);
         }

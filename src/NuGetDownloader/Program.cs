@@ -9,6 +9,7 @@ namespace NuGetDownloader
     {
         static Task Main(string[] args)
         {
+            args = @"download -n Serilog -o C:\TigerBox\POC\NuGetPackageDownloader\bin -f NETSTANDARD2_0".Split(' ');
             var nuGetPackageDownloader = new NugetPackageDownloader.NuGetDownloader();
 
             var parseResult = new Parser(with => with.HelpWriter = null)
@@ -17,35 +18,35 @@ namespace NuGetDownloader
             parseResult
                 .WithParsed<DownloadCommand>(async opts =>
                 {
-                    if (Enum.TryParse<TargetFramework>(opts.Framework, true, out var framework))
+                    if (Enum.TryParse<TargetFramework>(opts.Framework.Trim(), true, out var framework))
                     {
                         await nuGetPackageDownloader.DownloadPackageAsync(
-                                opts.Name,
+                                opts.Name.Trim(),
                                 framework,
-                                opts.OutputPath,
+                                opts.OutputPath.Trim(),
                                 downloaderOptions =>
                                 {
                                     downloaderOptions.IncludePrerelease = opts.IncludePrerelease;
-                                    downloaderOptions.Version = opts.Version;
+                                    downloaderOptions.Version = opts.Version?.Trim();
                                 });
                     }
                 })
                 .WithParsed<ExtractCommand>(async opts =>
                 {
-                    if (Enum.TryParse<TargetFramework>(opts.Framework, true, out var framework))
+                    if (Enum.TryParse<TargetFramework>(opts.Framework.Trim(), true, out var framework))
                     {
                         await nuGetPackageDownloader.DownloadAndExtractPackageAsync(
-                                opts.Name,
+                                opts.Name.Trim(),
                                 framework,
-                                opts.OutputPath,
+                                opts.OutputPath.Trim(),
                                 downloaderOptions =>
                                 {
                                     downloaderOptions.IncludePrerelease = opts.IncludePrerelease;
-                                    downloaderOptions.Version = opts.Version;
+                                    downloaderOptions.Version = opts.Version?.Trim();
                                 });
                     }
                 })
-                .WithParsed<VersionCommand>(async opts => await nuGetPackageDownloader.GetPackageVersionsAsync(opts.Name))
+                .WithParsed<VersionCommand>(async opts => await nuGetPackageDownloader.GetPackageVersionsAsync(opts.Name.Trim()))
                 .WithNotParsed(errs => HelpContent.DisplayHelp(parseResult, errs));
 
             return Task.CompletedTask;

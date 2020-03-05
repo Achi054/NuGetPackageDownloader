@@ -36,7 +36,7 @@ namespace NuGetDownloader
             "  -p, --include-prerelease:   Search even on Pre-Releases of the package(s)" }.ToList();
 
         static List<string> ShowHelp = new[] {
-            "Usage:  DownloadNuGet version [options]",
+            "Usage:  DownloadNuGet display-versions [options]",
             Environment.NewLine,
             "Options:",
             "  help, --help                Display help",
@@ -48,7 +48,7 @@ namespace NuGetDownloader
             "  Usage:  DownloadNuGet [commands][options]",
             "      Usage:  DownloadNuGet download [options]",
             "      Usage:  DownloadNuGet extract [options]",
-            "      Usage:  DownloadNuGet version [options]",
+            "      Usage:  DownloadNuGet display-versions [options]",
             Environment.NewLine,
             "  Options:",
             "     help, --help    Display help",
@@ -56,7 +56,7 @@ namespace NuGetDownloader
             "  Commands:",
             "    download:   Downloads the NuGet package",
             "    extract:    Extracts the NuGet package assemblies and dependent assemblies",
-            "    version:    Display available package versions in NuGet respository(s)",
+            "    display-versions:    Display available package versions in NuGet respository(s)",
             Environment.NewLine,
             "  Command Options:",
             "      -n, --name:                Name of the package",

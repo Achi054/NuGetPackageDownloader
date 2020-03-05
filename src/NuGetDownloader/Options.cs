@@ -64,14 +64,14 @@ namespace NuGetDownloader
         }
     }
 
-    [Verb("version", HelpText = "Display available package versions in NuGet respository(s)")]
+    [Verb("display-versions", HelpText = "Display available package versions in NuGet respository(s)")]
     internal class VersionCommand : BaseOptions
     {
-        [Usage(ApplicationAlias = "show")]
+        [Usage(ApplicationAlias = "display-versions")]
         public static IEnumerable<Example> ExtractExamples
         {
             get => new[] {
-                new Example("Show available package versions in NuGet respository(s)",
+                new Example("Display available package versions in NuGet respository(s)",
                     new[] {
                         new UnParserSettings
                         {
