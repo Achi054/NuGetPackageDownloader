@@ -39,6 +39,8 @@ namespace NugetPackageDownloader.Resources.Metadata
                         _logger,
                         cancellationToken);
 
+                    if (versions != null && versions.Any())
+                        _logger.LogInformation($"List of versions for package {packageName}:");
                     foreach (NuGetVersion version in versions)
                     {
                         _logger.LogInformation($"{version}");
