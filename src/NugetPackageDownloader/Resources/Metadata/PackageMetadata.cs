@@ -31,6 +31,8 @@ namespace NugetPackageDownloader.Resources.Metadata
             {
                 try
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     FindPackageByIdResource resource = await nuGetRepository.GetResourceAsync<FindPackageByIdResource>();
 
                     IEnumerable<NuGetVersion> versions = await resource.GetAllVersionsAsync(
