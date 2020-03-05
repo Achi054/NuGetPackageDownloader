@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using NuGet.Protocol.Core.Types;
 using NugetPackageDownloader.Constants;
 using NugetPackageDownloader.Logging;
 using NugetPackageDownloader.Resources;
@@ -51,13 +50,13 @@ namespace NugetPackageDownloader
         }
 
         /// <summary>
-        /// Method to fetch package metadata
+        /// Method to retrieve all the package versions
         /// </summary>
         /// <param name="packageName"></param>
         /// <param name="targetFramework"></param>
         /// <param name="downloaderOptions"></param>
         /// <returns></returns>
-        public async Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadataAsync(
+        public async Task GetPackageVersionsAsync(
             string packageName,
             TargetFramework targetFramework,
             Action<NuGetDownloader> downloaderOptions = default)
@@ -70,7 +69,7 @@ namespace NugetPackageDownloader
 
             downloaderOptions?.Invoke(this);
 
-            return await GetPackageSearchMetadataAsync(packageName, targetFramework, CancellationToken);
+            await GetPackageVersionsAsync(packageName, targetFramework, CancellationToken);
         }
 
         /// <summary>
@@ -119,7 +118,7 @@ namespace NugetPackageDownloader
             _logger?.LogInformation($"Download and extraction of package {packageName}.{Version} completed");
         }
 
-        private async Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadataAsync(
+        private async Task GetPackageVersionsAsync(
             string packageName,
             TargetFramework targetFramework,
             CancellationToken cancellationToken = default)
@@ -130,24 +129,20 @@ namespace NugetPackageDownloader
                 throw new ArgumentException("Enter valid package name", nameof(packageName));
             }
 
-            IEnumerable<IPackageSearchMetadata> packageMetadata = null;
-
-            _logger?.LogInformation($"Fetching package metadata for {packageName} started");
+            _logger?.LogInformation($"Retreiving package versions for {packageName} started");
 
             try
             {
                 var nuGetManager = new NuGetManager(targetFramework, false, null, IncludePrerelease, NuGetSourceRepositories, _logger);
 
-                packageMetadata = await _packageMetadata.GetPackageSearchMetadataAsync(packageName, nuGetManager, cancellationToken);
+                await _packageMetadata.GetPackageVersionsAsync(packageName, nuGetManager, cancellationToken);
             }
             catch (Exception)
             {
-                _logger?.LogError($"Fetching package metadata for {packageName} failed.");
+                _logger?.LogError($"Retreiving package versions for {packageName} failed.");
             }
 
-            _logger?.LogInformation($"Fetching package metadata for {packageName} completed");
-
-            return packageMetadata;
+            _logger?.LogInformation($"Retreiving package versoins for {packageName} completed");
         }
 
         private async Task DownloadPackageAsync(

@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
-
-using NuGet.Protocol.Core.Types;
 
 using NugetPackageDownloader.Constants;
 
@@ -11,13 +8,13 @@ namespace NugetPackageDownloader
     public interface INuGetDownloader
     {
         /// <summary>
-        /// Retrieve the NuGet package metadata
+        /// Retrieve list of available package versions
         /// </summary>
         /// <param name="packageName"></param>
         /// <param name="targetFramework"></param>
         /// <param name="downloaderOptions"></param>
         /// <returns></returns>
-        Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadataAsync(
+        Task GetPackageVersionsAsync(
             string packageName,
             TargetFramework targetFramework,
             Action<NuGetDownloader> downloaderOptions = default);

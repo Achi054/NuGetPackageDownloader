@@ -2,13 +2,11 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-using NuGet.Protocol.Core.Types;
-
 namespace NugetPackageDownloader.Resources.Metadata
 {
     internal interface IPackageMetadata
     {
-        Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadataAsync(
+        Task GetPackageVersionsAsync(
             string packageName,
             NuGetManager nuGetManager,
             CancellationToken cancellationToken = default);
