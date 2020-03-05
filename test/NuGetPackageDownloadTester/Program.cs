@@ -1,7 +1,6 @@
 ﻿using System.Threading.Tasks;
 
 using NugetPackageDownloader;
-using NugetPackageDownloader.Constants;
 
 namespace NuGetDownloadTester
 {
@@ -23,11 +22,10 @@ namespace NuGetDownloadTester
             //        downloaderOptions.Version = VERSION;
             //    });
 
-            const string NUGET_PACKAGE_NAME = "Serilog";
+            const string NUGET_PACKAGE_NAME = "Newtonsoft.Json";
 
             await new NuGetDownloader().GetPackageVersionsAsync(
                 NUGET_PACKAGE_NAME,
-                TargetFramework.NETSTANDARD2_1,
                 downloaderOptions =>
                 {
                     downloaderOptions.IncludePrerelease = true;

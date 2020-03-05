@@ -16,7 +16,6 @@ namespace NugetPackageDownloader
         /// <returns></returns>
         Task GetPackageVersionsAsync(
             string packageName,
-            TargetFramework targetFramework,
             Action<NuGetDownloader> downloaderOptions = default);
 
         /// <summary>

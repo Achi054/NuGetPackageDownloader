@@ -19,7 +19,7 @@
   
   <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.7.82" />
-    <PackageReference Include="NuGetPackageDownloader" Version="1.0.38" />
+    <PackageReference Include="NuGetPackageDownloader" Version="1.0.42" />
   </ItemGroup>
 
 </Project>

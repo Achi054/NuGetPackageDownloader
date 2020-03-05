@@ -58,7 +58,6 @@ namespace NugetPackageDownloader
         /// <returns></returns>
         public async Task GetPackageVersionsAsync(
             string packageName,
-            TargetFramework targetFramework,
             Action<NuGetDownloader> downloaderOptions = default)
         {
             if (string.IsNullOrWhiteSpace(packageName))
@@ -69,7 +68,7 @@ namespace NugetPackageDownloader
 
             downloaderOptions?.Invoke(this);
 
-            await GetPackageVersionsAsync(packageName, targetFramework, CancellationToken);
+            await GetPackageVersionsAsync(packageName, TargetFramework.NETSTANDARD2_0, CancellationToken);
         }
 
         /// <summary>
