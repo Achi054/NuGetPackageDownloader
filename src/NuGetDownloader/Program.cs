@@ -45,7 +45,13 @@ namespace NuGetDownloader
                                 });
                     }
                 })
-                .WithParsed<ShowCommand>(async opts => await nuGetPackageDownloader.GetPackageVersionsAsync(opts.Name))
+                .WithParsed<ShowCommand>(async opts =>
+                {
+                    if (Enum.TryParse<TargetFramework>(opts.Framework, true, out var framework))
+                    {
+                        await nuGetPackageDownloader.GetPackageVersionsAsync(opts.Name, framework);
+                    }
+                })
                 .WithNotParsed(errs => HelpContent.DisplayHelp(parseResult, errs));
 
             return Task.CompletedTask;
