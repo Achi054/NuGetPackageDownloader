@@ -6,7 +6,7 @@ Most of the application these days are build as tools or plugins, the need of a 
 
 The library exposes below set of interfaces,
 
-- **_Package Identities_**: Get package meta data information
+- **_Package Versions_**: Retrieves the package version
 
 - **_Download package_**: Download NuGet package from the source repositories
 
@@ -14,11 +14,11 @@ The library exposes below set of interfaces,
 
 ## Getting started
 
-**_Package Identities_**<br/>
+**_Package Versions_**<br/>
 
-_GetPackageSearchMetadataAsync_,
+_GetPackageVersionsAsync_,
 
-Async method that exposes package identities through a collection of package metadata.
+Async method that retrieves package verisions.
 
 - Inputs<br/>
 
@@ -28,17 +28,11 @@ Async method that exposes package identities through a collection of package met
 
   _downloadOptions_: Additional options that include<br/>
 
-  - _Version_: Package version
-
   - _IncludePrerelease_: Include Pre release package
 
   - _NuGetSourceRepositories_: NuGet source respositories
 
   - _CancellationToken_: Token to abort the process<br/>
-
-* Return<br/>
-
-  _List of IPackageSearchMetadata_
 
 <br/>**_Download package_**<br/>
 

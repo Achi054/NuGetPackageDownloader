@@ -20,29 +20,29 @@ namespace NugetPackageDownloader.Resources.Metadata
 
         public PackageMetadata(ILogger logger = default) => (_logger, _packageIdentities) = (logger, new HashSet<PackageIdentity>());
 
-        public async Task<IEnumerable<IPackageSearchMetadata>> GetPackageSearchMetadataAsync(
+        public async Task GetPackageVersionsAsync(
             string packageName,
             NuGetManager nuGetManager,
             CancellationToken cancellationToken = default)
         {
-            var packageSearchMetadatas = new HashSet<IPackageSearchMetadata>();
-
-            _logger?.LogInformation($"Searching package metadata for {packageName}");
+            _logger?.LogInformation($"Searching package versions for {packageName}");
 
             foreach (var nuGetRepository in nuGetManager.NuGetSourceRepositories)
             {
                 try
                 {
-                    var packageSearchResource = await GetPackageMetadataResourceAsync<PackageSearchResource>(nuGetRepository);
+                    FindPackageByIdResource resource = await nuGetRepository.GetResourceAsync<FindPackageByIdResource>();
 
-                    var searchFilter = new SearchFilter(nuGetManager.IncludePrerelease, SearchFilterType.IsLatestVersion)
+                    IEnumerable<NuGetVersion> versions = await resource.GetAllVersionsAsync(
+                        packageName,
+                        nuGetManager.NuGetSourceCacheContext,
+                        _logger,
+                        cancellationToken);
+
+                    foreach (NuGetVersion version in versions)
                     {
-                        SupportedFrameworks = new[] { nuGetManager.NuGetFramework.ToString() },
-                        IncludeDelisted = false,
-                        OrderBy = SearchOrderBy.Id
-                    };
-
-                    packageSearchMetadatas.AddRange(await packageSearchResource.SearchAsync(packageName, searchFilter, 0, 10, _logger, cancellationToken));
+                        _logger.LogInformation($"{version}");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -50,8 +50,6 @@ namespace NugetPackageDownloader.Resources.Metadata
                     continue;
                 }
             }
-
-            return packageSearchMetadatas;
         }
 
         public async Task<IEnumerable<PackageIdentity>> GetPackageIdentitiesAsync(
