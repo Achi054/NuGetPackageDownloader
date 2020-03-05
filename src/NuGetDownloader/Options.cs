@@ -64,8 +64,8 @@ namespace NuGetDownloader
         }
     }
 
-    [Verb("show", HelpText = "Show available package versions in NuGet respository(s)")]
-    internal class ShowCommand : BaseOptions
+    [Verb("version", HelpText = "Display available package versions in NuGet respository(s)")]
+    internal class VersionCommand : BaseOptions
     {
         [Usage(ApplicationAlias = "show")]
         public static IEnumerable<Example> ExtractExamples
@@ -94,6 +94,9 @@ namespace NuGetDownloader
 
     internal class Options : BaseOptions
     {
+        [Option('f', "framework", Required = true, HelpText = ".Net target framework")]
+        public string Framework { get; set; }
+
         [Option('o', "output", Required = true, HelpText = "NuGet output path to download/extract the package(s)")]
         public string OutputPath { get; set; }
 
@@ -108,9 +111,5 @@ namespace NuGetDownloader
     {
         [Option('n', "name", Required = true, HelpText = "Name of the package")]
         public string Name { get; set; }
-
-        [Option('f', "framework", Required = true, HelpText = ".Net target framework")]
-        public string Framework { get; set; }
-
     }
 }
