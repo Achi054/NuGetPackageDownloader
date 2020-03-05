@@ -64,11 +64,36 @@ namespace NuGetDownloader
         }
     }
 
-    internal class Options
+    [Verb("show", HelpText = "Show available package versions in NuGet respository(s)")]
+    internal class ShowCommand : BaseOptions
     {
-        [Option('n', "name", Required = true, HelpText = "Name of the package you want to download")]
-        public string Name { get; set; }
+        [Usage(ApplicationAlias = "show")]
+        public static IEnumerable<Example> ExtractExamples
+        {
+            get => new[] {
+                new Example("Show available package versions in NuGet respository(s)",
+                    new[] {
+                        new UnParserSettings
+                        {
+                            PreferShortName = true,
+                            UseEqualToken = true,
+                        },
+                        new UnParserSettings
+                        {
+                            PreferShortName = false,
+                            UseEqualToken = false,
+                        },
+                    },
+                    new BaseOptions
+                    {
+                        Name = "<name>"
+                    }),
+            };
+        }
+    }
 
+    internal class Options : BaseOptions
+    {
         [Option('f', "framework", Required = true, HelpText = ".Net target framework")]
         public string Framework { get; set; }
 
@@ -80,5 +105,11 @@ namespace NuGetDownloader
 
         [Option('p', "include-prerelease", Required = false, HelpText = "Search even on Pre-Releases of the package(s), true/false")]
         public bool IncludePrerelease { get; set; }
+    }
+
+    internal class BaseOptions
+    {
+        [Option('n', "name", Required = true, HelpText = "Name of the package")]
+        public string Name { get; set; }
     }
 }

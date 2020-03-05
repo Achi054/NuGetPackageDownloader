@@ -12,7 +12,7 @@ namespace NuGetDownloader
             var nuGetPackageDownloader = new NugetPackageDownloader.NuGetDownloader();
 
             var parseResult = new Parser(with => with.HelpWriter = null)
-                .ParseArguments<DownloadCommand, ExtractCommand>(args);
+                .ParseArguments<DownloadCommand, ExtractCommand, ShowCommand>(args);
 
             parseResult
                 .WithParsed<DownloadCommand>(async opts =>
@@ -45,6 +45,7 @@ namespace NuGetDownloader
                                 });
                     }
                 })
+                .WithParsed<ShowCommand>(async opts => await nuGetPackageDownloader.GetPackageVersionsAsync(opts.Name))
                 .WithNotParsed(errs => HelpContent.DisplayHelp(parseResult, errs));
 
             return Task.CompletedTask;
