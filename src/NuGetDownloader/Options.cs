@@ -64,10 +64,10 @@ namespace NuGetDownloader
         }
     }
 
-    [Verb("display-versions", HelpText = "Display available package versions in NuGet respository(s)")]
+    [Verb("versions", HelpText = "Display available package versions in NuGet respository(s)")]
     internal class VersionCommand : BaseOptions
     {
-        [Usage(ApplicationAlias = "display-versions")]
+        [Usage(ApplicationAlias = "versions")]
         public static IEnumerable<Example> ExtractExamples
         {
             get => new[] {
@@ -103,7 +103,7 @@ namespace NuGetDownloader
         [Option('v', "version", Required = false, HelpText = "Search based on version of the package(s)")]
         public string Version { get; set; }
 
-        [Option('p', "include-prerelease", Required = false, HelpText = "Search even on Pre-Releases of the package(s), true/false")]
+        [Option('p', "include-prerelease", Required = false, HelpText = "Search even on Pre-Releases of the package(s)")]
         public bool IncludePrerelease { get; set; }
     }
 
