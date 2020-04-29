@@ -1,34 +1,25 @@
-﻿using System.Threading.Tasks;
-using NugetPackageDownloader;
+﻿using System;
+using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace NuGetDownloadTester
 {
-    class Program
+    internal static class Program
     {
-        static async Task Main(string[] args)
+        private static async Task Main()
         {
-            //const string NUGET_PACKAGE_NAME = "Serilog";
-            //const string VERSION = "2.9.1-dev-01154";
-            //const string PATH = @"C:\TigerBox\POC\NugetPackageDownloader\bin";
-
-            //await new NuGetDownloader().DownloadPackageAsync(
-            //    NUGET_PACKAGE_NAME,
-            //    TargetFramework.NETSTANDARD2_0,
-            //    PATH,
-            //    downloaderOptions =>
-            //    {
-            //        downloaderOptions.IncludePrerelease = true;
-            //        downloaderOptions.Version = VERSION;
-            //    });
-
-            const string NUGET_PACKAGE_NAME = "Serilog";
-
-            await new NuGetDownloader().GetPackageVersionsAsync(
-                NUGET_PACKAGE_NAME);
-            //downloaderOptions =>
-            //{
-            //    downloaderOptions.IncludePrerelease = true;
-            //});
+            Stopwatch sw = Stopwatch.StartNew();
+            try
+            {
+                var d = new NuGetPackageDownloader.NuGetDownloader(@"D:\Temp\Packages");
+                foreach (var version in await d.GetPackageVersionsAsync("Swashbuckle.AspNetCore.Swagger"))
+                    Console.WriteLine(version);
+                await d.DownloadPackageAsync("Swashbuckle.AspNetCore.Swagger", extract: true);
+            }
+            finally
+            {
+                Console.WriteLine(sw.Elapsed);
+            }
         }
     }
 }

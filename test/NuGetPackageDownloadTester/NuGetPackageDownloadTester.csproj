@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\NuGetDownloader\NuGetDownloader.csproj" />
     <ProjectReference Include="..\..\src\NugetPackageDownloader\NuGetPackageDownloader.csproj" />
   </ItemGroup>
 
