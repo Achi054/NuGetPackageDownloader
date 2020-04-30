@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
 using NuGet.Common;
+
 using NuGetPackageDownloader.Internal;
 
 namespace NuGetPackageDownloader
@@ -11,8 +13,8 @@ namespace NuGetPackageDownloader
     public class NuGetDownloader
     {
         private readonly ILogger _logger = new NullLogger();
-        private readonly PackageMetadata _packageMetadata;
-        private readonly PackageDownloader _packageDownloader;
+        private readonly PkgMetadata _packageMetadata;
+        private readonly PkgDownloader _packageDownloader;
 
         public NuGetDownloader(string? outputPath = null,
             TargetFramework targetFramework = TargetFramework.NetStandard2_0,
@@ -24,8 +26,8 @@ namespace NuGetPackageDownloader
             IncludePrerelease = includePrerelease;
             Sources = sources;
 
-            _packageMetadata = new PackageMetadata(_logger);
-            _packageDownloader = new PackageDownloader(_logger);
+            _packageMetadata = new PkgMetadata(_logger);
+            _packageDownloader = new PkgDownloader(_logger);
         }
 
         public string OutputPath { get; }
@@ -41,19 +43,25 @@ namespace NuGetPackageDownloader
             bool extract = false,
             CancellationToken cancellationToken = default)
         {
-            NuGetManager manager = await NuGetManager.Create(TargetFramework, OutputPath, IncludePrerelease, Sources, _logger);
+            string downloadDir;
+            string? extractDir;
+            if (extract)
+            {
+                downloadDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+                extractDir = OutputPath;
+            }
+            else
+            {
+                downloadDir = OutputPath;
+                extractDir = null;
+            }
+
+            NuGetManager manager = await NuGetManager.Create(TargetFramework, downloadDir, IncludePrerelease, Sources, _logger);
 
             IEnumerable<PkgIdentity> packageIdentities = await _packageMetadata
                 .GetPackageIdentitiesAsync(packageName, version, manager, cancellationToken);
 
-            await _packageDownloader.DownloadPackagesAsync(
-                packageIdentities, manager, cancellationToken);
-
-            if (extract)
-            {
-                await _packageDownloader.ExtractPackageAssembliesAsync(
-                    OutputPath, packageIdentities, manager, cancellationToken);
-            }
+            await _packageDownloader.DownloadPackagesAsync(packageIdentities, manager, extractDir, cancellationToken);
         }
 
         public async Task<IEnumerable<string>> GetPackageVersionsAsync(string packageName,

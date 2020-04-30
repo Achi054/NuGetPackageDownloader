@@ -7,7 +7,7 @@ using NuGet.ProjectManagement;
 
 namespace NuGetPackageDownloader.Internal
 {
-    public sealed class ProjectContext : INuGetProjectContext
+    internal sealed class ProjectContext : INuGetProjectContext
     {
         private readonly ILogger _logger;
 

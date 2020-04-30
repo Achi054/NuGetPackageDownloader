@@ -12,30 +12,29 @@ using NuGet.Versioning;
 
 namespace NuGetPackageDownloader.Internal
 {
-    internal sealed class PackageMetadata
+    internal sealed class PkgMetadata
     {
         private readonly ILogger _logger;
 
-        internal PackageMetadata(ILogger logger)
+        internal PkgMetadata(ILogger logger)
         {
             _logger = logger;
         }
 
         internal async Task<IEnumerable<string>> GetPackageVersionsAsync(string packageName,
             NuGetManager manager,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
         {
             IEnumerable<string> result = Enumerable.Empty<string>();
 
-            foreach (SourceRepository sourceRepository in manager.NuGetSourceRepositories)
+            foreach (SourceRepository sourceRepository in manager.SourceRepositories)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
                 FindPackageByIdResource resource = await sourceRepository.GetResourceAsync<FindPackageByIdResource>();
 
-                IEnumerable<NuGetVersion> versions = await resource.GetAllVersionsAsync(
-                    packageName,
-                    manager.NuGetSourceCacheContext,
+                IEnumerable<NuGetVersion> versions = await resource.GetAllVersionsAsync(packageName,
+                    manager.SourceCacheContext,
                     _logger,
                     cancellationToken);
 
@@ -48,11 +47,11 @@ namespace NuGetPackageDownloader.Internal
         internal async Task<IEnumerable<PkgIdentity>> GetPackageIdentitiesAsync(string name,
             string? version,
             NuGetManager manager,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
         {
-            var identities = new HashSet<PkgIdentity>();
+            var identities = new PkgIdentities();
 
-            foreach (SourceRepository nuGetSourceRepository in manager.NuGetSourceRepositories)
+            foreach (SourceRepository nuGetSourceRepository in manager.SourceRepositories)
             {
                 PkgIdentity? identity = await GetPackageIdentityAsync(identities, name, version,
                     manager, nuGetSourceRepository, cancellationToken);
@@ -75,12 +74,6 @@ namespace NuGetPackageDownloader.Internal
             return identities;
         }
 
-        private async Task<T> GetPackageMetadataResourceAsync<T>(SourceRepository nuGetRepository)
-            where T : class, INuGetResource
-        {
-            return await nuGetRepository.GetResourceAsync<T>();
-        }
-
         private async Task<PkgIdentity?> GetPackageIdentityAsync(ICollection<PkgIdentity> identities,
             string name,
             string? version,
@@ -92,11 +85,8 @@ namespace NuGetPackageDownloader.Internal
                 identities, name, version, manager, sourceRepository, cancellationToken);
             return packageSearchMetadata is null
                 ? null
-                : new PkgIdentity(
-                    packageSearchMetadata.Identity.Id,
-                    packageSearchMetadata.Identity.Version,
-                    packageSearchMetadata.Identity,
-                    GetDependentPackageIdentity(packageSearchMetadata, manager.NuGetFramework));
+                : new PkgIdentity(packageSearchMetadata.Identity,
+                    GetDependentPackageIdentity(packageSearchMetadata, manager.Framework));
         }
 
         private async Task<IPackageSearchMetadata?> GetPackageMetadataAsync(ICollection<PkgIdentity> identities,
@@ -106,33 +96,37 @@ namespace NuGetPackageDownloader.Internal
             SourceRepository sourceRepository,
             CancellationToken cancellationToken)
         {
-            IPackageSearchMetadata? packageSearchMetadata = null;
+            if (identities.Any(x => x.Name == name && x.Version.ToString() == version))
+                return null;
 
-            if (!identities.Any(x => x.Name == name && x.Version.ToString() == version))
+            PackageMetadataResource packageMetadataResource = await GetPackageMetadataResourceAsync<PackageMetadataResource>(sourceRepository);
+
+            if (NuGetVersion.TryParse(version, out NuGetVersion nugetVersion))
             {
-                PackageMetadataResource packageMetadataResource = await GetPackageMetadataResourceAsync<PackageMetadataResource>(sourceRepository);
+                var packageIdentity = new PackageIdentity(name, nugetVersion);
 
-                if (NuGetVersion.TryParse(version, out var nugetVersion))
-                {
-                    var packageIdentity = new PackageIdentity(name, nugetVersion);
+                IPackageSearchMetadata metadata = await packageMetadataResource.GetMetadataAsync(
+                    packageIdentity, manager.SourceCacheContext, _logger, cancellationToken);
 
-                    IPackageSearchMetadata packageMetadata = await packageMetadataResource.GetMetadataAsync(
-                        packageIdentity, manager.NuGetSourceCacheContext, _logger, cancellationToken);
-
-                    packageSearchMetadata = packageMetadata;
-                }
-                else
-                {
-                    IEnumerable<IPackageSearchMetadata> packageMetadatas = await packageMetadataResource
-                        .GetMetadataAsync(name, true, true, manager.NuGetSourceCacheContext, _logger, cancellationToken);
-
-                    packageSearchMetadata = packageMetadatas
-                        .OrderByDescending(x => x.Identity.Version)
-                        .FirstOrDefault();
-                }
+                return metadata;
             }
+            else
+            {
+                IEnumerable<IPackageSearchMetadata> packageMetadatas = await packageMetadataResource
+                    .GetMetadataAsync(name, true, true, manager.SourceCacheContext, _logger, cancellationToken);
 
-            return packageSearchMetadata;
+                IPackageSearchMetadata metadata = packageMetadatas
+                    .OrderByDescending(x => x.Identity.Version)
+                    .FirstOrDefault();
+
+                return metadata;
+            }
+        }
+
+        private async Task<T> GetPackageMetadataResourceAsync<T>(SourceRepository nuGetRepository)
+            where T : class, INuGetResource
+        {
+            return await nuGetRepository.GetResourceAsync<T>();
         }
 
         private HashSet<PackageIdentity> GetDependentPackageIdentity(IPackageSearchMetadata packageSearchMetadata,

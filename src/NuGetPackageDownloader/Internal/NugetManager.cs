@@ -17,42 +17,42 @@ using NuGet.Resolver;
 
 namespace NuGetPackageDownloader.Internal
 {
-    internal class NuGetManager
+    internal sealed class NuGetManager
     {
         // Read from source nuget.config
         private const string packageSourcesSection = "packageSources";
         private const string disallowedPackageSourcesSection = "disabledPackageSources";
 
-        private readonly string _nugetConfigPath;
+        private readonly string _outputPath;
         private readonly bool _includePrerelease;
         private readonly ILogger _logger;
 
         internal static async Task<NuGetManager> Create(TargetFramework targetFramework,
-            string? nugetConfigPath,
+            string? outputPath,
             bool includePrerelease,
             IEnumerable<string>? sources,
             ILogger logger)
         {
-            var manager = new NuGetManager(targetFramework, nugetConfigPath, includePrerelease, logger);
+            var manager = new NuGetManager(targetFramework, outputPath, includePrerelease, logger);
             // Initialize NuGet Source Repositories
-            manager.NuGetSourceRepositories = await manager.GetSourceRepositories(sources);
+            manager.SourceRepositories = await manager.GetSourceRepositories(sources);
             return manager;
         }
 
         private NuGetManager(TargetFramework targetFramework,
-            string? nugetConfigPath,
+            string? outputPath,
             bool includePrerelease,
             ILogger logger)
         {
             // NuGet config settings
-            NuGetSettings = Settings.LoadDefaultSettings(null, null, new MachineWideSettings());
+            Settings = NuGet.Configuration.Settings.LoadDefaultSettings(null, null, new MachineWideSettings());
 
-            NuGetFramework = targetFramework.ToNuGetFramework();
-            _nugetConfigPath = nugetConfigPath ?? SettingsUtility.GetGlobalPackagesFolder(NuGetSettings);
+            Framework = targetFramework.ToNuGetFramework();
+            _outputPath = outputPath ?? SettingsUtility.GetGlobalPackagesFolder(Settings);
             _includePrerelease = includePrerelease;
             _logger = logger;
 
-            NuGetSourceCacheContext = new SourceCacheContext
+            SourceCacheContext = new SourceCacheContext
             {
                 NoCache = true,
                 DirectDownload = true,
@@ -60,17 +60,21 @@ namespace NuGetPackageDownloader.Internal
             };
 
             // Add API support for v3, include v2 support if needed
-            NuGetResourceProviders.AddRange(Repository.Provider.GetCoreV3());
+            ResourceProviders.AddRange(Repository.Provider.GetCoreV3());
 
             // Set NuGet project
-            NuGetProject = new FolderNuGetProject(_nugetConfigPath);
+            Project = new FolderNuGetProject(_outputPath);
 
             // Initialize NuGetPackageManager
-            NuGetPackageManager = InitializeNuGetPackageManager();
+            var packageSourceProvider = new PackageSourceProvider(Settings);
+            var sourceRepositoryProvider = new SourceRepositoryProvider(packageSourceProvider, ResourceProviders);
+            PackageManager = new NuGetPackageManager(sourceRepositoryProvider, Settings, _outputPath)
+            {
+                PackagesFolderNuGetProject = (FolderNuGetProject)Project,
+            };
 
             // Initialize package resolution context
-            NuGetResolutionContext = new ResolutionContext(
-                DependencyBehavior.Lowest,
+            ResolutionContext = new ResolutionContext(DependencyBehavior.Lowest,
                 _includePrerelease,
                 false,
                 VersionConstraints.None,
@@ -82,69 +86,48 @@ namespace NuGetPackageDownloader.Internal
                 });
 
             // Initialize package download context
-            NuGetDownloadContext = new PackageDownloadContext(
-                NuGetResolutionContext.SourceCacheContext,
-                _nugetConfigPath,
-                NuGetResolutionContext.SourceCacheContext.DirectDownload);
+            DownloadContext = new PackageDownloadContext(ResolutionContext.SourceCacheContext,
+                _outputPath,
+                ResolutionContext.SourceCacheContext.DirectDownload);
 
             // Initialize package project context
-            NuGetProjectContext = new ProjectContext(_logger);
-            NuGetProjectContext.PackageExtractionContext = new PackageExtractionContext(PackageSaveMode.Defaultv2,
+            ProjectContext = new ProjectContext(_logger);
+            ProjectContext.PackageExtractionContext = new PackageExtractionContext(PackageSaveMode.Defaultv2,
                 XmlDocFileSaveMode.None,
-                ClientPolicyContext.GetClientPolicy(NuGetSettings, _logger),
+                ClientPolicyContext.GetClientPolicy(Settings, _logger),
                 _logger);
         }
 
-        internal NuGetFramework NuGetFramework { get; }
+        internal NuGetFramework Framework { get; }
 
-        internal IEnumerable<SourceRepository> NuGetSourceRepositories { get; private set; } = null!;
+        internal IEnumerable<SourceRepository> SourceRepositories { get; private set; } = null!;
 
-        internal List<Lazy<INuGetResourceProvider>> NuGetResourceProviders { get; } = new List<Lazy<INuGetResourceProvider>>();
+        internal List<Lazy<INuGetResourceProvider>> ResourceProviders { get; } = new List<Lazy<INuGetResourceProvider>>();
 
-        internal SourceCacheContext NuGetSourceCacheContext { get; }
+        internal SourceCacheContext SourceCacheContext { get; }
 
-        internal ISettings NuGetSettings { get; }
+        internal ISettings Settings { get; }
 
-        internal NuGetPackageManager NuGetPackageManager { get; }
+        internal NuGetPackageManager PackageManager { get; }
 
-        internal ResolutionContext NuGetResolutionContext { get; }
+        internal ResolutionContext ResolutionContext { get; }
 
-        internal PackageDownloadContext NuGetDownloadContext { get; }
+        internal PackageDownloadContext DownloadContext { get; }
 
-        internal INuGetProjectContext NuGetProjectContext { get; }
+        internal INuGetProjectContext ProjectContext { get; }
 
-        internal NuGetProject NuGetProject { get; }
+        internal NuGetProject Project { get; }
 
-        /// <summary>
-        /// Download NuGet packages based on Package Identity
-        /// </summary>
-        /// <param name="packageIdentity"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        internal async Task DownloadPackages(
-            PackageIdentity packageIdentity,
-            CancellationToken cancellationToken = default)
+        internal async Task DownloadPackages(PackageIdentity packageIdentity, CancellationToken cancellationToken)
         {
-            await NuGetPackageManager.InstallPackageAsync(
-                                       NuGetProject,
-                                       packageIdentity,
-                                       NuGetResolutionContext,
-                                       NuGetProjectContext,
-                                       NuGetDownloadContext,
-                                       NuGetSourceRepositories,
-                                       Array.Empty<SourceRepository>(),
-                                       cancellationToken);
-        }
-
-        private NuGetPackageManager InitializeNuGetPackageManager()
-        {
-            var packageSourceProvider = new PackageSourceProvider(NuGetSettings);
-            var sourceRepositoryProvider = new SourceRepositoryProvider(packageSourceProvider, NuGetResourceProviders);
-
-            return new NuGetPackageManager(sourceRepositoryProvider, NuGetSettings, _nugetConfigPath)
-            {
-                PackagesFolderNuGetProject = (FolderNuGetProject)NuGetProject
-            };
+            await PackageManager.InstallPackageAsync(Project,
+                packageIdentity,
+                ResolutionContext,
+                ProjectContext,
+                DownloadContext,
+                SourceRepositories,
+                Array.Empty<SourceRepository>(),
+                cancellationToken);
         }
 
         private async Task<IEnumerable<SourceRepository>> GetSourceRepositories(IEnumerable<string>? sources)
@@ -165,12 +148,12 @@ namespace NuGetPackageDownloader.Internal
             }
             else
             {
-                IEnumerable<AddItem>? disallowedPackageSources = NuGetSettings
+                IEnumerable<AddItem>? disallowedPackageSources = Settings
                     .GetSection(disallowedPackageSourcesSection)?
                     .Items
                     .Cast<AddItem>();
 
-                IEnumerable<SourceItem> packageSources = NuGetSettings
+                IEnumerable<SourceItem> packageSources = Settings
                     .GetSection(packageSourcesSection)
                     .Items
                     .Cast<SourceItem>();
@@ -193,7 +176,7 @@ namespace NuGetPackageDownloader.Internal
 
         private async Task<SourceRepository?> GetSourceRepository(Uri feedUri)
         {
-            var sourceRepository = new SourceRepository(new PackageSource(feedUri.ToString()), NuGetResourceProviders);
+            var sourceRepository = new SourceRepository(new PackageSource(feedUri.ToString()), ResourceProviders);
 
             try
             {
