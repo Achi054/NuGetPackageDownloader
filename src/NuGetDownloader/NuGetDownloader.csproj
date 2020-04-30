@@ -15,5 +15,9 @@
     <PackageReference Include="CommandLineParser" Version="2.7.82" />
     <PackageReference Include="NuGetPackageDownloader" Version="1.0.52" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\NugetPackageDownloader\NuGetPackageDownloader.csproj" />
+  </ItemGroup>
 
 </Project>

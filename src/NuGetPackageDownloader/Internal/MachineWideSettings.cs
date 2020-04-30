@@ -1,15 +1,15 @@
 ﻿using NuGet.Common;
 using NuGet.Configuration;
 
-namespace NugetPackageDownloader.Resources.NuGet
+namespace NuGetPackageDownloader.Internal
 {
-    public class MachineWideSettings : IMachineWideSettings
+    internal sealed class MachineWideSettings : IMachineWideSettings
     {
         private readonly ISettings _settings;
 
-        public MachineWideSettings()
+        internal MachineWideSettings()
         {
-            var baseDirectory = NuGetEnvironment.GetFolderPath(NuGetFolderPath.MachineWideConfigDirectory);
+            string baseDirectory = NuGetEnvironment.GetFolderPath(NuGetFolderPath.MachineWideConfigDirectory);
             _settings = Settings.LoadMachineWideSettings(baseDirectory);
         }
 

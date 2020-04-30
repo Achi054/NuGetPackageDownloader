@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 using NugetLogger = NuGet.Common;
 
-namespace NugetPackageDownloader.Logging
+namespace NuGetPackageDownloader.Logging
 {
     public class NuGetLogger : NugetLogger.ILogger
     {
@@ -14,29 +14,17 @@ namespace NugetPackageDownloader.Logging
 
         public void Log(NugetLogger.LogLevel level, string data)
         {
-            switch (level)
+            Action<string> logMethod = level switch
             {
-                case NugetLogger.LogLevel.Debug:
-                    LogDebug(data);
-                    break;
-                case NugetLogger.LogLevel.Verbose:
-                    LogVerbose(data);
-                    break;
-                case NugetLogger.LogLevel.Information:
-                    LogInformation(data);
-                    break;
-                case NugetLogger.LogLevel.Minimal:
-                    LogMinimal(data);
-                    break;
-                case NugetLogger.LogLevel.Warning:
-                    LogWarning(data);
-                    break;
-                case NugetLogger.LogLevel.Error:
-                    LogError(data);
-                    break;
-                default:
-                    throw new ArgumentException(nameof(level));
-            }
+                NugetLogger.LogLevel.Debug => LogDebug,
+                NugetLogger.LogLevel.Verbose => LogVerbose,
+                NugetLogger.LogLevel.Information => LogInformation,
+                NugetLogger.LogLevel.Minimal => LogMinimal,
+                NugetLogger.LogLevel.Warning => LogWarning,
+                NugetLogger.LogLevel.Error => LogError,
+                _ => throw new ArgumentException(nameof(level))
+            };
+            logMethod(data);
         }
 
         public void Log(NugetLogger.ILogMessage message)

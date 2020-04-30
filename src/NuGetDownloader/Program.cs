@@ -1,52 +1,34 @@
 ﻿using System;
+
 using CommandLine;
-using NugetPackageDownloader.Constants;
+
+using NuGetPackageDownloader;
 
 namespace NuGetDownloader
 {
-    public class Program
+    internal static class Program
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
-            var nuGetPackageDownloader = new NugetPackageDownloader.NuGetDownloader();
+            var downloader = new NuGetPackageDownloader.NuGetDownloader();
 
-            var parseResult = new Parser(with => with.HelpWriter = null)
+            ParserResult<object> parseResult = new Parser(with => with.HelpWriter = null)
                 .ParseArguments<DownloadCommand, ExtractCommand, VersionCommand>(args);
 
             parseResult
-                .WithParsed<DownloadCommand>(opts =>
+                .WithParsed<DownloadCommand>(async opts =>
                 {
-                    if (Enum.TryParse<TargetFramework>(opts.Framework.Trim(), true, out var framework))
-                    {
-                        nuGetPackageDownloader.DownloadPackageAsync(
-                                opts.Name.Trim(),
-                                framework,
-                                opts.OutputPath.Trim(),
-                                downloaderOptions =>
-                                {
-                                    downloaderOptions.IncludePrerelease = opts.IncludePrerelease;
-                                    downloaderOptions.Version = opts.Version?.Trim();
-                                }).GetAwaiter().GetResult();
-                    }
+                    if (Enum.TryParse(opts.Framework.Trim(), true, out TargetFramework framework))
+                        await downloader.DownloadPackageAsync(opts.Name.Trim());
                 })
-                .WithParsed<ExtractCommand>(opts =>
+                .WithParsed<ExtractCommand>(async opts =>
                 {
-                    if (Enum.TryParse<TargetFramework>(opts.Framework.Trim(), true, out var framework))
-                    {
-                        nuGetPackageDownloader.DownloadAndExtractPackageAsync(
-                                opts.Name.Trim(),
-                                framework,
-                                opts.OutputPath.Trim(),
-                                downloaderOptions =>
-                                {
-                                    downloaderOptions.IncludePrerelease = opts.IncludePrerelease;
-                                    downloaderOptions.Version = opts.Version?.Trim();
-                                }).GetAwaiter().GetResult();
-                    }
+                    if (Enum.TryParse(opts.Framework.Trim(), true, out TargetFramework framework))
+                        await downloader.DownloadPackageAsync(opts.Name.Trim(), extract: true);
                 })
-                .WithParsed<VersionCommand>(opts =>
+                .WithParsed<VersionCommand>(async opts =>
                 {
-                    nuGetPackageDownloader.GetPackageVersionsAsync(opts.Name.Trim()).GetAwaiter().GetResult();
+                    await downloader.GetPackageVersionsAsync(opts.Name.Trim());
                 })
                 .WithNotParsed(errs => HelpContent.DisplayHelp(parseResult, errs));
         }
