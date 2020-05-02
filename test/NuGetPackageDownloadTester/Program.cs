@@ -11,8 +11,9 @@ namespace NuGetDownloadTester
 
         private static async Task Main()
         {
-            const string packageName = "Swashbuckle.AspNetCore.Swagger";
+            //const string packageName = "Swashbuckle.AspNetCore.Swagger";
             //const string packageName = "Serilog";
+            const string packageName = "ConsoleFx";
 
             if (!Directory.Exists(DownloadDirectory))
                 Directory.CreateDirectory(DownloadDirectory);
@@ -22,9 +23,9 @@ namespace NuGetDownloadTester
             Stopwatch sw = Stopwatch.StartNew();
             try
             {
-                var d = new NuGetPackageDownloader.NuGetDownloader(DownloadDirectory);
-                //foreach (var version in await d.GetPackageVersionsAsync(packageName))
-                //    Console.WriteLine(version);
+                var d = new NuGetPackageDownloader.NuGetDownloader(DownloadDirectory, includePrerelease: false);
+                foreach (var version in await d.GetPackageVersionsAsync(packageName))
+                    Console.WriteLine(version);
                 await d.DownloadPackageAsync(packageName, extract: false);
             }
             finally

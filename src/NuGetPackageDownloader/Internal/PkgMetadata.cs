@@ -33,10 +33,12 @@ namespace NuGetPackageDownloader.Internal
 
                 FindPackageByIdResource resource = await sourceRepository.GetResourceAsync<FindPackageByIdResource>();
 
-                IEnumerable<NuGetVersion> versions = await resource.GetAllVersionsAsync(packageName,
-                    manager.SourceCacheContext,
-                    _logger,
-                    cancellationToken);
+                IEnumerable<NuGetVersion> versions = (await resource
+                    .GetAllVersionsAsync(packageName,
+                        manager.SourceCacheContext,
+                        _logger,
+                        cancellationToken))
+                    .Where(ver => ver.IsPrerelease == manager.IncludePrerelease);
 
                 result = result.Concat(versions.Select(v => v.ToNormalizedString()));
             }

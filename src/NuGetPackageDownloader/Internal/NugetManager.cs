@@ -24,7 +24,6 @@ namespace NuGetPackageDownloader.Internal
         private const string disallowedPackageSourcesSection = "disabledPackageSources";
 
         private readonly string _outputPath;
-        private readonly bool _includePrerelease;
         private readonly ILogger _logger;
 
         internal static async Task<NuGetManager> Create(TargetFramework targetFramework,
@@ -49,7 +48,7 @@ namespace NuGetPackageDownloader.Internal
 
             Framework = targetFramework.ToNuGetFramework();
             _outputPath = outputPath ?? SettingsUtility.GetGlobalPackagesFolder(Settings);
-            _includePrerelease = includePrerelease;
+            IncludePrerelease = includePrerelease;
             _logger = logger;
 
             SourceCacheContext = new SourceCacheContext
@@ -75,7 +74,7 @@ namespace NuGetPackageDownloader.Internal
 
             // Initialize package resolution context
             ResolutionContext = new ResolutionContext(DependencyBehavior.Lowest,
-                _includePrerelease,
+                IncludePrerelease,
                 false,
                 VersionConstraints.None,
                 new GatherCache(),
@@ -97,6 +96,8 @@ namespace NuGetPackageDownloader.Internal
                 ClientPolicyContext.GetClientPolicy(Settings, _logger),
                 _logger);
         }
+
+        internal bool IncludePrerelease { get; }
 
         internal NuGetFramework Framework { get; }
 
