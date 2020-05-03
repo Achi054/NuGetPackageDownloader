@@ -33,8 +33,7 @@ namespace NuGetPackageDownloader.Internal
 
                 FindPackageByIdResource resource = await sourceRepository.GetResourceAsync<FindPackageByIdResource>();
 
-                IEnumerable<NuGetVersion> versions = (await resource
-                    .GetAllVersionsAsync(packageName,
+                IEnumerable<NuGetVersion> versions = (await resource.GetAllVersionsAsync(packageName,
                         manager.SourceCacheContext,
                         _logger,
                         cancellationToken))
@@ -53,10 +52,10 @@ namespace NuGetPackageDownloader.Internal
         {
             var identities = new PkgIdentities();
 
-            foreach (SourceRepository nuGetSourceRepository in manager.SourceRepositories)
+            foreach (SourceRepository sourceRepository in manager.SourceRepositories)
             {
-                PkgIdentity? identity = await GetPackageIdentityAsync(identities, name, version,
-                    manager, nuGetSourceRepository, cancellationToken);
+                PkgIdentity? identity = await GetPackageIdentityAsync(identities, name, version, manager,
+                    sourceRepository, cancellationToken);
 
                 if (identity is null)
                     continue;
@@ -83,78 +82,75 @@ namespace NuGetPackageDownloader.Internal
             SourceRepository sourceRepository,
             CancellationToken cancellationToken)
         {
-            IPackageSearchMetadata? packageSearchMetadata = await GetPackageMetadataAsync(
-                identities, name, version, manager, sourceRepository, cancellationToken);
-            return packageSearchMetadata is null
-                ? null
-                : new PkgIdentity(packageSearchMetadata.Identity,
-                    GetDependentPackageIdentity(packageSearchMetadata, manager.Framework));
+            // If the specified package ID already exists in the collection, no need to get its metadata
+            // again.
+            if (identities.Any(id => id.Name == name && id.Version.ToString() == version))
+                return null;
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            IPackageSearchMetadata packageMetadata = await GetPackageMetadataAsync(name,
+                version, manager, sourceRepository, cancellationToken);
+            return new PkgIdentity(packageMetadata.Identity,
+                GetDependentPackageIdentity(packageMetadata, manager.Framework));
         }
 
-        private async Task<IPackageSearchMetadata?> GetPackageMetadataAsync(ICollection<PkgIdentity> identities,
-            string name,
+        private async Task<IPackageSearchMetadata> GetPackageMetadataAsync(string name,
             string? version,
             NuGetManager manager,
             SourceRepository sourceRepository,
             CancellationToken cancellationToken)
         {
-            if (identities.Any(x => x.Name == name && x.Version.ToString() == version))
-                return null;
-
-            PackageMetadataResource packageMetadataResource = await GetPackageMetadataResourceAsync<PackageMetadataResource>(sourceRepository);
+            PackageMetadataResource packageMetadataResource = await sourceRepository
+                .GetResourceAsync<PackageMetadataResource>();
 
             if (NuGetVersion.TryParse(version, out NuGetVersion nugetVersion))
             {
-                var packageIdentity = new PackageIdentity(name, nugetVersion);
-
-                IPackageSearchMetadata metadata = await packageMetadataResource.GetMetadataAsync(
-                    packageIdentity, manager.SourceCacheContext, _logger, cancellationToken);
-
-                return metadata;
+                // If version is specified, get the metadata for the specific version of the package.
+                return await packageMetadataResource.GetMetadataAsync(
+                    new PackageIdentity(name, nugetVersion),
+                    manager.SourceCacheContext,
+                    _logger,
+                    cancellationToken);
             }
-            else
-            {
-                IEnumerable<IPackageSearchMetadata> packageMetadatas = await packageMetadataResource
-                    .GetMetadataAsync(name, true, true, manager.SourceCacheContext, _logger, cancellationToken);
 
-                IPackageSearchMetadata metadata = packageMetadatas
-                    .OrderByDescending(x => x.Identity.Version)
-                    .FirstOrDefault();
+            // If version is not specified, get metadata for all packages and return the latest.
+            IEnumerable<IPackageSearchMetadata> packageMetadatas = await packageMetadataResource.GetMetadataAsync(
+                name,
+                manager.IncludePrerelease,
+                includeUnlisted: false,
+                manager.SourceCacheContext,
+                _logger,
+                cancellationToken);
 
-                return metadata;
-            }
+            return packageMetadatas
+                .OrderByDescending(x => x.Identity.Version)
+                .FirstOrDefault();
         }
 
-        private async Task<T> GetPackageMetadataResourceAsync<T>(SourceRepository nuGetRepository)
-            where T : class, INuGetResource
-        {
-            return await nuGetRepository.GetResourceAsync<T>();
-        }
-
-        private HashSet<PackageIdentity> GetDependentPackageIdentity(IPackageSearchMetadata packageSearchMetadata,
+        private HashSet<PackageIdentity> GetDependentPackageIdentity(IPackageSearchMetadata packageMetadata,
             NuGetFramework targetFramework)
         {
             var dependentPackageIdentities = new HashSet<PackageIdentity>();
 
-            if (packageSearchMetadata.DependencySets != null && packageSearchMetadata.DependencySets.Any())
-            {
-                var mostCompatibleFramework =
-                    GetMostCompatibleFramework(targetFramework, packageSearchMetadata.DependencySets);
+            if (packageMetadata.DependencySets is null || !packageMetadata.DependencySets.Any())
+                return dependentPackageIdentities;
 
-                if (packageSearchMetadata.DependencySets.Any(x => x.TargetFramework == mostCompatibleFramework))
-                {
-                    var dependentSearchMetadata = packageSearchMetadata.DependencySets
-                        .Where(x => x.TargetFramework == mostCompatibleFramework)
-                        .FirstOrDefault();
+            NuGetFramework mostCompatibleFramework = GetMostCompatibleFramework(targetFramework,
+                packageMetadata.DependencySets);
 
-                    if (dependentSearchMetadata != null && dependentSearchMetadata.Packages.Any())
-                        dependentSearchMetadata.Packages.ToList().ForEach(x =>
-                        {
-                            dependentPackageIdentities.Add(
-                                new PackageIdentity(x.Id, x.VersionRange.MinVersion));
-                        });
-                }
-            }
+            if (!packageMetadata.DependencySets.Any(x => x.TargetFramework == mostCompatibleFramework))
+                return dependentPackageIdentities;
+
+            PackageDependencyGroup dependentPackages = packageMetadata.DependencySets
+                .Where(x => x.TargetFramework == mostCompatibleFramework)
+                .FirstOrDefault();
+
+            if (dependentPackages is null || !dependentPackages.Packages.Any())
+                return dependentPackageIdentities;
+
+            foreach (PackageDependency dependentPackage in dependentPackages.Packages)
+                dependentPackageIdentities.Add(new PackageIdentity(dependentPackage.Id, dependentPackage.VersionRange.MinVersion));
 
             return dependentPackageIdentities;
         }

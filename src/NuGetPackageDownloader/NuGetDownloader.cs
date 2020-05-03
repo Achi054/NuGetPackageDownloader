@@ -47,7 +47,7 @@ namespace NuGetPackageDownloader
             string? extractDir;
             if (extract)
             {
-                downloadDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+                downloadDir = Path.Combine(Path.GetTempPath(), $"NuGetPackageDownloader.{DateTime.Now.Ticks}");
                 extractDir = OutputPath;
             }
             else

@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
+using NuGetPackageDownloader;
 
 namespace NuGetDownloadTester
 {
@@ -13,7 +14,8 @@ namespace NuGetDownloadTester
         {
             //const string packageName = "Swashbuckle.AspNetCore.Swagger";
             //const string packageName = "Serilog";
-            const string packageName = "ConsoleFx";
+            //const string packageName = "ConsoleFx";
+            const string packageName = "Eurofins.Digital.AdoNet";
 
             if (!Directory.Exists(DownloadDirectory))
                 Directory.CreateDirectory(DownloadDirectory);
@@ -23,10 +25,17 @@ namespace NuGetDownloadTester
             Stopwatch sw = Stopwatch.StartNew();
             try
             {
-                var d = new NuGetPackageDownloader.NuGetDownloader(DownloadDirectory, includePrerelease: false);
+                var sources = new[] 
+                {
+                    "https://www.myget.org/F/eurofins-digital-online/auth/efcd5b4a-89d8-4491-9700-5b2ed013b2ce/api/v3/index.json",
+                    "https://api.nuget.org/v3/index.json",
+                };
+                //string[] sources = null;
+
+                var d = new NuGetPackageDownloader.NuGetDownloader(DownloadDirectory, TargetFramework.NetCoreApp3_1, includePrerelease: false, sources: sources);
                 foreach (var version in await d.GetPackageVersionsAsync(packageName))
                     Console.WriteLine(version);
-                await d.DownloadPackageAsync(packageName, extract: false);
+                await d.DownloadPackageAsync(packageName, extract: true);
             }
             finally
             {
