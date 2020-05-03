@@ -29,10 +29,11 @@ namespace NuGetPackageDownloader.Internal
         internal static async Task<NuGetManager> Create(TargetFramework targetFramework,
             string? outputPath,
             bool includePrerelease,
+            bool recursive,
             IEnumerable<string>? sources,
             ILogger logger)
         {
-            var manager = new NuGetManager(targetFramework, outputPath, includePrerelease, logger);
+            var manager = new NuGetManager(targetFramework, outputPath, includePrerelease, recursive, logger);
             // Initialize NuGet Source Repositories
             manager.SourceRepositories = await manager.GetSourceRepositories(sources);
             return manager;
@@ -41,6 +42,7 @@ namespace NuGetPackageDownloader.Internal
         private NuGetManager(TargetFramework targetFramework,
             string? outputPath,
             bool includePrerelease,
+            bool recursive,
             ILogger logger)
         {
             // NuGet config settings
@@ -49,6 +51,7 @@ namespace NuGetPackageDownloader.Internal
             Framework = targetFramework.ToNuGetFramework();
             _outputPath = outputPath ?? SettingsUtility.GetGlobalPackagesFolder(Settings);
             IncludePrerelease = includePrerelease;
+            Recursive = recursive;
             _logger = logger;
 
             SourceCacheContext = new SourceCacheContext
@@ -98,6 +101,8 @@ namespace NuGetPackageDownloader.Internal
         }
 
         internal bool IncludePrerelease { get; }
+
+        internal bool Recursive { get; }
 
         internal NuGetFramework Framework { get; }
 

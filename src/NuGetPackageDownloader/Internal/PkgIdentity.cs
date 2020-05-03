@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 
 using NuGet.Packaging.Core;
-using NuGet.Versioning;
+using NuGet.Protocol.Core.Types;
 
 namespace NuGetPackageDownloader.Internal
 {
@@ -17,10 +16,6 @@ namespace NuGetPackageDownloader.Internal
             Identity = identity;
             DependentPackageIdentities = dependentPackageIdentities;
         }
-
-        internal string Name => Identity.Id;
-
-        internal NuGetVersion Version => Identity.Version;
 
         internal PackageIdentity Identity { get; }
 
@@ -47,7 +42,35 @@ namespace NuGetPackageDownloader.Internal
             {
                 if (i == index)
                     continue;
-                if (this[i].Name == identity.Name)
+                if (this[i].Identity.Id == identity.Identity.Id)
+                    return true;
+            }
+
+            return false;
+        }
+    }
+
+    internal sealed class PackageMetadataCollection : Collection<IPackageSearchMetadata>
+    {
+        protected override void InsertItem(int index, IPackageSearchMetadata item)
+        {
+            if (!IsDuplicate(item, -1))
+                base.InsertItem(index, item);
+        }
+
+        protected override void SetItem(int index, IPackageSearchMetadata item)
+        {
+            if (!IsDuplicate(item, index))
+                base.SetItem(index, item);
+        }
+
+        private bool IsDuplicate(IPackageSearchMetadata metadata, int index)
+        {
+            for (int i = 0; i < Count; i++)
+            {
+                if (i == index)
+                    continue;
+                if (this[i].Identity.Id == metadata.Identity.Id)
                     return true;
             }
 

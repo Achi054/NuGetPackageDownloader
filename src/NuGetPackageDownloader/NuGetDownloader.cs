@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 using NuGet.Common;
-
+using NuGet.Packaging.Core;
 using NuGetPackageDownloader.Internal;
 
 namespace NuGetPackageDownloader
@@ -19,11 +20,13 @@ namespace NuGetPackageDownloader
         public NuGetDownloader(string? outputPath = null,
             TargetFramework targetFramework = TargetFramework.NetStandard2_0,
             bool includePrerelease = false,
+            bool recursive = false,
             IEnumerable<string>? sources = null)
         {
             OutputPath = outputPath ?? Directory.GetCurrentDirectory();
             TargetFramework = targetFramework;
             IncludePrerelease = includePrerelease;
+            Recursive = recursive;
             Sources = sources;
 
             _packageMetadata = new PkgMetadata(_logger);
@@ -35,6 +38,8 @@ namespace NuGetPackageDownloader
         public TargetFramework TargetFramework { get; }
 
         public bool IncludePrerelease { get; }
+
+        public bool Recursive { get; }
 
         public IEnumerable<string>? Sources { get; }
 
@@ -56,18 +61,20 @@ namespace NuGetPackageDownloader
                 extractDir = null;
             }
 
-            NuGetManager manager = await NuGetManager.Create(TargetFramework, downloadDir, IncludePrerelease, Sources, _logger);
+            NuGetManager manager = await NuGetManager.Create(TargetFramework, downloadDir, IncludePrerelease, Recursive, Sources, _logger);
 
-            IEnumerable<PkgIdentity> packageIdentities = await _packageMetadata
+            IReadOnlyList<PackageIdentity> packageIdentities = await _packageMetadata
                 .GetPackageIdentitiesAsync(packageName, version, manager, cancellationToken);
 
-            await _packageDownloader.DownloadPackagesAsync(packageIdentities, manager, extractDir, cancellationToken);
+            await _packageDownloader.DownloadPackagesAsync(
+                packageIdentities.Select(pi => new PkgIdentity(pi, new HashSet<PackageIdentity>())),
+                manager, extractDir, cancellationToken);
         }
 
         public async Task<IEnumerable<string>> GetPackageVersionsAsync(string packageName,
             CancellationToken cancellationToken = default)
         {
-            NuGetManager manager = await NuGetManager.Create(TargetFramework, null, IncludePrerelease, Sources, _logger);
+            NuGetManager manager = await NuGetManager.Create(TargetFramework, null, IncludePrerelease, Recursive, Sources, _logger);
             return await _packageMetadata.GetPackageVersionsAsync(packageName, manager, cancellationToken);
         }
     }
