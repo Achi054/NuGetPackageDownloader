@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 using NuGet.Common;
 using NuGet.Packaging.Core;
+
 using NuGetPackageDownloader.Internal;
 
 namespace NuGetPackageDownloader
@@ -48,27 +48,34 @@ namespace NuGetPackageDownloader
             bool extract = false,
             CancellationToken cancellationToken = default)
         {
-            string downloadDir;
-            string? extractDir;
-            if (extract)
+            (string downloadDir, string? extractDir) = extract
+                ? (Path.Combine(Path.GetTempPath(), $"NuGetPackageDownloader.{DateTime.Now.Ticks}"), OutputPath)
+                : (OutputPath, null);
+
+            NuGetManager manager = await NuGetManager.Create(TargetFramework, downloadDir, IncludePrerelease,
+                Recursive, Sources, _logger);
+
+            IReadOnlyList<PackageIdentity> packageIdentities = await _packageMetadata.GetPackageIdentitiesAsync(
+                packageName, version, manager, cancellationToken);
+
+            try
             {
-                downloadDir = Path.Combine(Path.GetTempPath(), $"NuGetPackageDownloader.{DateTime.Now.Ticks}");
-                extractDir = OutputPath;
+                await _packageDownloader.DownloadPackagesAsync(packageIdentities, manager, extractDir, cancellationToken);
             }
-            else
+            finally
             {
-                downloadDir = OutputPath;
-                extractDir = null;
+                if (extract)
+                {
+                    try
+                    {
+                        Directory.Delete(downloadDir, true);
+                    }
+                    catch
+                    {
+                        // Swallow exception
+                    }
+                }
             }
-
-            NuGetManager manager = await NuGetManager.Create(TargetFramework, downloadDir, IncludePrerelease, Recursive, Sources, _logger);
-
-            IReadOnlyList<PackageIdentity> packageIdentities = await _packageMetadata
-                .GetPackageIdentitiesAsync(packageName, version, manager, cancellationToken);
-
-            await _packageDownloader.DownloadPackagesAsync(
-                packageIdentities.Select(pi => new PkgIdentity(pi, new HashSet<PackageIdentity>())),
-                manager, extractDir, cancellationToken);
         }
 
         public async Task<IEnumerable<string>> GetPackageVersionsAsync(string packageName,

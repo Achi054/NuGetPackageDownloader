@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using NuGet.Common;
 using NuGet.Frameworks;
 using NuGet.Packaging;
+using NuGet.Packaging.Core;
 using NuGet.ProjectManagement;
 
 namespace NuGetPackageDownloader.Internal
@@ -20,7 +21,7 @@ namespace NuGetPackageDownloader.Internal
             _logger = logger;
         }
 
-        internal async Task DownloadPackagesAsync(IEnumerable<PkgIdentity> identities,
+        internal async Task DownloadPackagesAsync(IEnumerable<PackageIdentity> identities,
             NuGetManager manager,
             string? extractDir,
             CancellationToken cancellationToken)
@@ -31,11 +32,11 @@ namespace NuGetPackageDownloader.Internal
             // OPTION 1
             IEnumerable<Task> tasks = identities.Select(async identity =>
             {
-                bool packageAlreadyExists = manager.PackageManager.PackageExistsInPackagesFolder(
-                    identity.Identity, PackageSaveMode.None);
+                bool packageAlreadyExists = manager.PackageManager.PackageExistsInPackagesFolder(identity,
+                    PackageSaveMode.None);
 
                 if (!packageAlreadyExists)
-                    await manager.DownloadPackages(identity.Identity, cancellationToken);
+                    await manager.DownloadPackages(identity, cancellationToken);
             });
             await Task.WhenAll(tasks);
 
@@ -47,10 +48,10 @@ namespace NuGetPackageDownloader.Internal
             //    packageDownloadTasks.Add(Task.Run(async () =>
             //    {
             //        bool packageAlreadyExists = manager.NuGetPackageManager.PackageExistsInPackagesFolder(
-            //            identity.Identity, PackageSaveMode.None);
+            //            identity, PackageSaveMode.None);
 
             //        if (!packageAlreadyExists)
-            //            await manager.DownloadPackages(identity.Identity, cancellationToken);
+            //            await manager.DownloadPackages(identity, cancellationToken);
             //    }, cancellationToken));
             //}
 
@@ -60,48 +61,54 @@ namespace NuGetPackageDownloader.Internal
             //Parallel.ForEach(identities, identity =>
             //{
             //    bool packageAlreadyExists = manager.NuGetPackageManager.PackageExistsInPackagesFolder(
-            //        identity.Identity, PackageSaveMode.None);
+            //        identity, PackageSaveMode.None);
 
             //    if (!packageAlreadyExists)
-            //        manager.DownloadPackages(identity.Identity, cancellationToken).GetAwaiter().GetResult();
+            //        manager.DownloadPackages(identity, cancellationToken).GetAwaiter().GetResult();
             //});
 
             // OPTION 4: Synchronous
             //foreach (PkgIdentity identity in identities)
             //{
             //    bool packageAlreadyExists = manager.NuGetPackageManager.PackageExistsInPackagesFolder(
-            //        identity.Identity, PackageSaveMode.None);
+            //        identity, PackageSaveMode.None);
 
             //    if (!packageAlreadyExists)
-            //        await manager.DownloadPackages(identity.Identity, cancellationToken);
+            //        await manager.DownloadPackages(identity, cancellationToken);
             //}
 
             if (extractDir != null)
                 ExtractPackageAssemblies(extractDir, identities, manager);
         }
 
-        private void ExtractPackageAssemblies(string extractDir, IEnumerable<PkgIdentity> identities, NuGetManager manager)
+        private void ExtractPackageAssemblies(string extractDir,
+            IEnumerable<PackageIdentity> identities,
+            NuGetManager manager)
         {
             var nugetProject = manager.Project as FolderNuGetProject;
             if (nugetProject is null)
                 return;
 
-            foreach (PkgIdentity identity in identities)
+            if (!Directory.Exists(extractDir))
+                Directory.CreateDirectory(extractDir);
+
+            foreach (PackageIdentity identity in identities)
             {
-                string packageFilePath = nugetProject.GetInstalledPackageFilePath(identity.Identity);
+                string packageFilePath = nugetProject.GetInstalledPackageFilePath(identity);
                 if (string.IsNullOrWhiteSpace(packageFilePath))
                     continue;
 
-                var archiveReader = new PackageArchiveReader(packageFilePath, null, null);
-                FrameworkSpecificGroup? referenceGroup = GetMostCompatibleGroup(manager.Framework, archiveReader.GetReferenceItems());
+                FrameworkSpecificGroup? referenceGroup;
+                using (var archiveReader = new PackageArchiveReader(packageFilePath, null, null))
+                {
+                    referenceGroup = GetMostCompatibleGroup(manager.Framework,
+                        archiveReader.GetReferenceItems());
+                }
 
                 if (referenceGroup is null || referenceGroup.Items is null || !referenceGroup.Items.Any())
                     continue;
 
-                if (!Directory.Exists(extractDir))
-                    Directory.CreateDirectory(extractDir);
-
-                string nugetPackagePath = nugetProject.GetInstalledPath(identity.Identity);
+                string nugetPackagePath = nugetProject.GetInstalledPath(identity);
                 Parallel.ForEach(referenceGroup.Items, x =>
                 {
                     string sourceAssemblyPath = Path.Combine(nugetPackagePath, x);

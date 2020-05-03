@@ -22,19 +22,25 @@ namespace NuGetDownloadTester
             else
                 EmptyDownloadDirectory();
 
-            Stopwatch sw = Stopwatch.StartNew();
-            try
+            var sources = new[]
             {
-                var sources = new[] 
-                {
                     "https://www.myget.org/F/eurofins-digital-online/auth/efcd5b4a-89d8-4491-9700-5b2ed013b2ce/api/v3/index.json",
                     "https://api.nuget.org/v3/index.json",
                 };
-                //string[] sources = null;
+            //string[] sources = null;
 
-                var d = new NuGetPackageDownloader.NuGetDownloader(DownloadDirectory, TargetFramework.NetStandard2_0, includePrerelease: false, recursive: true, sources: sources);
-                foreach (var version in await d.GetPackageVersionsAsync(packageName))
-                    Console.WriteLine(version);
+            var d = new NuGetPackageDownloader.NuGetDownloader(DownloadDirectory,
+                TargetFramework.NetStandard2_0,
+                includePrerelease: false,
+                recursive: false,
+                sources: sources);
+
+            foreach (var version in await d.GetPackageVersionsAsync(packageName))
+                Console.WriteLine(version);
+
+            Stopwatch sw = Stopwatch.StartNew();
+            try
+            {
                 await d.DownloadPackageAsync(packageName, extract: true);
             }
             finally
