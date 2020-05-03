@@ -124,10 +124,10 @@ namespace NuGetPackageDownloader.Internal
 
         internal NuGetProject Project { get; }
 
-        internal async Task DownloadPackages(PackageIdentity packageIdentity, CancellationToken cancellationToken)
+        internal async Task DownloadPackages(PackageIdentity identity, CancellationToken cancellationToken)
         {
             await PackageManager.InstallPackageAsync(Project,
-                packageIdentity,
+                identity,
                 ResolutionContext,
                 ProjectContext,
                 DownloadContext,

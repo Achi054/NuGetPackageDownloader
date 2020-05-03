@@ -136,11 +136,12 @@ namespace NuGetPackageDownloader.Internal
 
         private bool IsValid(FrameworkSpecificGroup frameworkSpecificGroup)
         {
-            return frameworkSpecificGroup != null
-                ? frameworkSpecificGroup.HasEmptyFolder
-                    || frameworkSpecificGroup.Items.Any()
-                    || !frameworkSpecificGroup.TargetFramework.Equals(NuGetFramework.AnyFramework)
-                : false;
+            if (frameworkSpecificGroup is null)
+                return false;
+
+            return frameworkSpecificGroup.HasEmptyFolder
+                || frameworkSpecificGroup.Items.Any()
+                || !frameworkSpecificGroup.TargetFramework.Equals(NuGetFramework.AnyFramework);
         }
     }
 }
