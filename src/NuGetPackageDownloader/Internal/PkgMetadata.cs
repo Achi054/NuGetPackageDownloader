@@ -38,7 +38,7 @@ namespace NuGetPackageDownloader.Internal
                         manager.SourceCacheContext,
                         _logger,
                         cancellationToken))
-                    .Where(ver => ver.IsPrerelease == manager.IncludePrerelease);
+                    .Where(ver => !ver.IsPrerelease || manager.IncludePrerelease);
 
                 result = result.Concat(versions.Select(v => v.ToNormalizedString()));
             }

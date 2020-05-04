@@ -12,9 +12,9 @@ namespace NuGetDownloadTester
 
         private static async Task Main()
         {
-            const string packageName = "Swashbuckle.AspNetCore.Swagger";
+            //const string packageName = "Swashbuckle.AspNetCore.Swagger";
             //const string packageName = "Serilog";
-            //const string packageName = "ConsoleFx";
+            const string packageName = "ConsoleFx";
             //const string packageName = "Eurofins.Digital.AdoNet";
 
             if (!Directory.Exists(DownloadDirectory))
@@ -30,8 +30,8 @@ namespace NuGetDownloadTester
             //string[] sources = null;
 
             var d = new NuGetPackageDownloader.NuGetDownloader(DownloadDirectory,
-                TargetFramework.NetStandard2_0,
-                includePrerelease: false,
+                TargetFramework.NetCoreApp3_1,
+                includePrerelease: true,
                 recursive: false,
                 sources: sources);
 

@@ -85,4 +85,9 @@ namespace NuGetPackageDownloader
             return await _packageMetadata.GetPackageVersionsAsync(packageName, manager, cancellationToken);
         }
     }
+
+    public abstract class NuGetAction
+    {
+
+    }
 }
