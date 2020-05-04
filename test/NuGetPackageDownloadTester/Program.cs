@@ -31,7 +31,7 @@ namespace NuGetDownloadTester
         private const bool IncludePrerelease = false;
         private const bool Recursive = false;
 
-        private static bool DownloadInParallel = false;
+        private static bool DownloadInParallel = true;
 
         private static async Task Main()
         {
@@ -47,13 +47,16 @@ namespace NuGetDownloadTester
                 EmptyDownloadDirectory();
 
             var metadata = new NuGetMetadata(sources);
-            metadata.IncludePrerelease = false;
+            metadata.IncludePrerelease = IncludePrerelease;
             foreach (string package in Packages)
             {
-                Console.Write($"{package}: ");
-                await foreach (string version in metadata.GetPackageVersionsAsync(package))
-                    Console.Write(version + " ");
-                Console.WriteLine();
+                //Console.Write($"{package}: ");
+                //await foreach (string version in metadata.GetPackageVersionsAsync(package))
+                //    Console.Write(version + " ");
+                //Console.WriteLine();
+
+                string latestVersion = await metadata.GetLatestPackageVersionAsync(package);
+                Console.WriteLine($"{package}: {latestVersion}");
             }
 
             var d = new NuGetPackageDownloader.NuGetDownloader(Framework,
