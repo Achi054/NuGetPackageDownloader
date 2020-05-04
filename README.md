@@ -1,5 +1,7 @@
 # NuGet Package Downloader
 
+![NuGet Package Downloader](./src/NuGetPackageDownloader/Assets/Titan.png)
+
 master | dev | nuget
 -------|-----|------
 [![Build status](https://ci.appveyor.com/api/projects/status/0f4u7344b392pfsv/branch/master?svg=true)](https://ci.appveyor.com/project/Achi054/nugetpackagedownloader/branch/master) | [![Build status](https://ci.appveyor.com/api/projects/status/0f4u7344b392pfsv/branch/dev?svg=true)](https://ci.appveyor.com/project/Achi054/nugetpackagedownloader/branch/dev) | [![NuGet Version](http://img.shields.io/nuget/v/NuGetPackageDownloader.svg?style=flat)](https://www.nuget.org/packages/NuGetPackageDownloader/)
