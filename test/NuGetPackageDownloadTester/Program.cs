@@ -8,45 +8,91 @@ namespace NuGetDownloadTester
 {
     internal static class Program
     {
+        private const TargetFramework Framework = TargetFramework.NetCoreApp3_1;
+
         private const string DownloadDirectory = @"D:\Temp\Packages";
+
+        private static readonly string[] Packages = new[]
+        {
+            "Swashbuckle.AspNetCore.Swagger",
+            "Serilog",
+            "Id3",
+            "Moq",
+            "Collections.NET",
+            "IniFile.NET",
+            "ContentProvider",
+            "Ninject",
+            "Microsoft.EntityFrameworkCore",
+            "Microsoft.EntityFrameworkCore.SqlServer",
+            //"Eurofins.Digital.AdoNet",
+        };
+
+        private const bool Extract = true;
+        private const bool IncludePrerelease = false;
+        private const bool Recursive = false;
+
+        private static bool DownloadInParallel = false;
 
         private static async Task Main()
         {
-            //const string packageName = "Swashbuckle.AspNetCore.Swagger";
-            //const string packageName = "Serilog";
-            const string packageName = "ConsoleFx";
-            //const string packageName = "Eurofins.Digital.AdoNet";
+            var sources = new[]
+            {
+                //"https://www.myget.org/F/eurofins-digital-online/auth/efcd5b4a-89d8-4491-9700-5b2ed013b2ce/api/v3/index.json",
+                "https://api.nuget.org/v3/index.json",
+            };
 
             if (!Directory.Exists(DownloadDirectory))
                 Directory.CreateDirectory(DownloadDirectory);
             else
                 EmptyDownloadDirectory();
 
-            var sources = new[]
+            var metadata = new NuGetMetadata(sources);
+            metadata.IncludePrerelease = false;
+            foreach (string package in Packages)
             {
-                    "https://www.myget.org/F/eurofins-digital-online/auth/efcd5b4a-89d8-4491-9700-5b2ed013b2ce/api/v3/index.json",
-                    "https://api.nuget.org/v3/index.json",
-                };
-            //string[] sources = null;
+                Console.Write($"{package}: ");
+                await foreach (string version in metadata.GetPackageVersionsAsync(package))
+                    Console.Write(version + " ");
+                Console.WriteLine();
+            }
 
-            var d = new NuGetPackageDownloader.NuGetDownloader(DownloadDirectory,
-                TargetFramework.NetCoreApp3_1,
-                includePrerelease: true,
-                recursive: false,
+            var d = new NuGetPackageDownloader.NuGetDownloader(Framework,
+                DownloadDirectory,
+                includePrerelease: IncludePrerelease,
+                recursive: Recursive,
+                extract: Extract,
                 sources: sources);
-
-            foreach (var version in await d.GetPackageVersionsAsync(packageName))
-                Console.WriteLine(version);
 
             Stopwatch sw = Stopwatch.StartNew();
             try
             {
-                await d.DownloadPackageAsync(packageName, extract: true);
+                if (DownloadInParallel)
+                    ParallelDownload(d, sw);
+                else
+                    await SynchronousDownload(d, sw);
             }
             finally
             {
                 Console.WriteLine(sw.Elapsed);
             }
+        }
+
+        private static async Task SynchronousDownload(NuGetPackageDownloader.NuGetDownloader downloader, Stopwatch sw)
+        {
+            foreach (string package in Packages)
+            {
+                Console.WriteLine($"[{sw.Elapsed}] Downloading {package}...");
+                await downloader.DownloadPackageAsync(package);
+            }
+        }
+
+        private static void ParallelDownload(NuGetPackageDownloader.NuGetDownloader downloader, Stopwatch sw)
+        {
+            Parallel.ForEach(Packages, (package) =>
+            {
+                downloader.DownloadPackageAsync(package).GetAwaiter().GetResult();
+                Console.WriteLine($"[{sw.Elapsed}] Downloading {package}...");
+            });
         }
 
         private static void EmptyDownloadDirectory()
