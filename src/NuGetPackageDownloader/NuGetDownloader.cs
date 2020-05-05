@@ -42,7 +42,7 @@ namespace NuGetPackageDownloader
 
             outputDir ??= Directory.GetCurrentDirectory();
             (_downloadDir, _extractDir) = extract
-                ? (Path.Combine(Path.GetTempPath(), $"NuGetPackageDownloader.{DateTime.Now.Ticks}"), outputDir)
+                ? (Path.Combine(Path.GetTempPath(), $"NuGetPackageDownloader.{Guid.NewGuid():N}"), outputDir)
                 : (outputDir, null);
 
             _framework = targetFramework.ToNuGetFramework();
