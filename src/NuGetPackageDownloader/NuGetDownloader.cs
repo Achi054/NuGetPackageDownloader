@@ -61,6 +61,16 @@ namespace NuGetPackageDownloader
         public bool Recursive { get; }
 
         public bool Extract { get; }
+
+        public async Task<IEnumerable<NuGetPackage>> GetPackageDependenciesAsync(string name,
+            string? version = null,
+            CancellationToken cancellationToken = default)
+        {
+            var dependencies = (await GetPackageIdentitiesAsync(name, version, cancellationToken))
+                .Where(pi => pi.Id != name)
+                .Select(pi => new NuGetPackage(pi.Id, pi.Version.ToNormalizedString()));
+            return dependencies;
+        }
     }
 
     public partial class NuGetDownloader
@@ -300,5 +310,18 @@ namespace NuGetPackageDownloader
                 || frameworkSpecificGroup.Items.Any()
                 || !frameworkSpecificGroup.TargetFramework.Equals(NuGetFramework.AnyFramework);
         }
+    }
+
+    public sealed class NuGetPackage
+    {
+        internal NuGetPackage(string id, string version)
+        {
+            Id = id;
+            Version = version;
+        }
+
+        public string Id { get; set; }
+
+        public string Version { get; set; }
     }
 }

@@ -17,7 +17,7 @@ namespace NuGetDownloadTester
             "Swashbuckle.AspNetCore.Swagger",
             "Serilog",
             "Id3",
-            "Moq",
+            //"Moq",
             "Collections.NET",
             "IniFile.NET",
             "ContentProvider",
@@ -46,6 +46,13 @@ namespace NuGetDownloadTester
             else
                 EmptyDownloadDirectory();
 
+            //await GetPackageVersions(sources);
+            await GetPackageDependencies(sources);
+            //await DownloadPackages(sources);
+        }
+
+        private static async Task GetPackageVersions(string[] sources)
+        {
             var metadata = new NuGetMetadata(sources);
             metadata.IncludePrerelease = IncludePrerelease;
             foreach (string package in Packages)
@@ -58,7 +65,25 @@ namespace NuGetDownloadTester
                 string latestVersion = await metadata.GetLatestPackageVersionAsync(package);
                 Console.WriteLine($"{package}: {latestVersion}");
             }
+        }
 
+        private static async Task GetPackageDependencies(string[] sources)
+        {
+            var deps = new NuGetPackageDownloader.NuGetDownloader(Framework,
+                DownloadDirectory,
+                recursive: true,
+                sources: sources);
+            foreach (string package in Packages)
+            {
+                Console.WriteLine($"{package} dependencies");
+                var dependencies = await deps.GetPackageDependenciesAsync(package);
+                foreach (NuGetPackage dependency in dependencies)
+                    Console.WriteLine($"    {dependency.Id} ({dependency.Version})");
+            }
+        }
+
+        private static async Task DownloadPackages(string[] sources)
+        {
             var d = new NuGetPackageDownloader.NuGetDownloader(Framework,
                 DownloadDirectory,
                 includePrerelease: IncludePrerelease,
